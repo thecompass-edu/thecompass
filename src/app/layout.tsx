@@ -13,11 +13,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Compass",
-  description: "The Compass is a youth organization working to close the financial literacy gap through accessible education, real-world tools, and community.",
+  title: {
+    default: "The Compass | Financial Literacy for Young People",
+    template: "%s | The Compass",
+  },
+  description:
+    "The Compass is a youth organization making financial literacy accessible through education, real-world tools, and community.",
+  keywords: [
+    "financial literacy",
+    "financial education",
+    "money management",
+    "personal finance",
+    "youth financial education",
+    "financial education Indonesia",
+  ],
+  authors: [{ name: "The Compass" }],
+  creator: "The Compass",
+  publisher: "The Compass",
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"
