@@ -42,6 +42,12 @@ type GuideProps = {
   interactive?: boolean;
 };
 
+type LayoutProps = {
+  activeTab: PurposeTab;
+  animationKey: number;
+  onTabChange: (tab: PurposeTab) => void;
+};
+
 const PURPOSE_CONTENT: Record<PurposeTab, PurposeContent> = {
   mission: {
     title: "Our Mission",
@@ -103,7 +109,6 @@ function PurposeContentBlock({
 }: ContentBlockProps) {
   const content = PURPOSE_CONTENT[activeTab];
   const isValues = activeTab === "values";
-
   const isMobile = variant === "mobile";
 
   const titleClassName = isMobile
@@ -273,12 +278,6 @@ function TornPaperEdge() {
   );
 }
 
-type LayoutProps = {
-  activeTab: PurposeTab;
-  animationKey: number;
-  onTabChange: (tab: PurposeTab) => void;
-};
-
 function MobilePurposeLayout({
   activeTab,
   animationKey,
@@ -330,6 +329,8 @@ function MobilePurposeLayout({
 
         <PurposeGuide className="absolute bottom-[7%] left-[4%] z-40 w-[50%]" />
       </div>
+
+      <TornPaperEdge />
     </div>
   );
 }
@@ -433,11 +434,12 @@ export default function PurposeSection() {
         onTabChange={handleTabChange}
       />
 
-      <style jsx>{`
+      <style jsx global>{`
         .purpose-underline {
+          display: block;
           transform: scaleX(0);
-          transform-origin: left;
-          animation: drawPurposeLine 600ms
+          transform-origin: left center;
+          animation: purposeLineDraw 600ms
             cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
@@ -447,15 +449,16 @@ export default function PurposeSection() {
 
         .purpose-guide-underline {
           transform: scaleX(0);
-          transform-origin: left;
-          transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+          transform-origin: left center;
+          transition: transform 500ms
+            cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        :global(.group:hover) .purpose-guide-underline {
+        .group:hover .purpose-guide-underline {
           transform: scaleX(1);
         }
 
-        @keyframes drawPurposeLine {
+        @keyframes purposeLineDraw {
           from {
             transform: scaleX(0);
           }
@@ -478,18 +481,18 @@ export default function PurposeSection() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .purpose-underline,
+          .purpose-underline {
+            animation: none;
+            transform: scaleX(1);
+          }
+
           .purpose-content-animation {
             animation: none;
           }
 
-          .purpose-underline,
-          .purpose-guide-underline {
-            transform: scaleX(1);
-          }
-
           .purpose-guide-underline {
             transition: none;
+            transform: scaleX(1);
           }
         }
       `}</style>
