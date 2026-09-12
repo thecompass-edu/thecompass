@@ -7,7 +7,7 @@ import HighlightCard from "@/assets/TodayFeatured/Highlight_Card.png";
 
 export const TodayFeatured = () => {
     return (
-        <section className="w-full py-16 px-0 md:px-8 flex justify-center bg-[#F7F5F0]">
+        <section className="w-full py-16 px-0 md:px-8 flex justify-center bg-[#FEFEFE]">
             <div className="max-w-295 w-full relative p-6 md:p-10 flex flex-col md:flex-row gap-3 md:gap-8">
                 <div className="absolute inset-0 z-0">
                     <Image 
