@@ -67,7 +67,7 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <div className="mt-8 flex min-h-[220px] items-center justify-center rounded-xl bg-[#F6F1EA]">
+          <div className="mt-8 flex min-h-55 items-center justify-center rounded-xl bg-[#F6F1EA]">
             <p className="text-sm text-[#523A23]/45">
               No article data yet
             </p>
@@ -86,7 +86,7 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <div className="mt-8 flex min-h-[220px] items-center justify-center rounded-xl bg-[#F6F1EA]">
+          <div className="mt-8 flex min-h-55 items-center justify-center rounded-xl bg-[#F6F1EA]">
             <p className="text-sm text-[#523A23]/45">
               No visitor data yet
             </p>

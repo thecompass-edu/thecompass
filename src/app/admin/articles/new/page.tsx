@@ -4,8 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import { SidebarMinimalisticIcon } from "@solar-icons/react/linear";
-
 import ArticleEditor from "@/components/admin/ArticleEditor";
 import AuthorsInput from "@/components/admin/AuthorsInput";
 import CoverImageUpload from "@/components/admin/CoverImageUpload";
@@ -19,6 +17,39 @@ function generateSlug(value: string) {
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+}
+
+// The icon points up when the details are visible.
+// It rotates down when the details are collapsed.
+function DetailsCollapseIcon({
+  size = 22,
+}: {
+  size?: number;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M7 5H17"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+
+      <path
+        d="M6.5 15L12 9.5L17.5 15"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 export default function NewArticlePage() {
@@ -49,7 +80,7 @@ export default function NewArticlePage() {
       <form action={createArticle}>
         {/* The main header stays visible while the admin writes the article. */}
         <header className="sticky top-0 z-50 border-b border-[#27430D]/10 bg-white/95 backdrop-blur">
-          <div className="flex min-h-[76px] flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-h-19 flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 flex-1 items-center gap-4">
               <Link
                 href="/admin/articles"
@@ -114,7 +145,7 @@ export default function NewArticlePage() {
           </div>
         )}
 
-        {/* This checkbox controls whether the article details are visible. */}
+        {/* Checked means the Article Details section is visible. */}
         <input
           id="article-details-toggle"
           type="checkbox"
@@ -126,13 +157,13 @@ export default function NewArticlePage() {
         <label
           htmlFor="article-details-toggle"
           className="
-            sticky top-[76px] z-40
-            flex min-h-[56px] cursor-pointer
+            sticky top-19 z-40
+            flex min-h-14 cursor-pointer
             items-center justify-between gap-4
             border-b border-[#27430D]/10
             bg-white/95 px-5
             backdrop-blur
-            peer-checked:[&_.details-toggle-icon]:-rotate-90
+            peer-checked:[&_.details-collapse-icon]:rotate-0
           "
         >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -146,19 +177,37 @@ export default function NewArticlePage() {
           </div>
 
           <span
-            title="Toggle article details"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#687704] transition hover:bg-[#687704]/5 hover:text-[#27430D]"
+            title="Show or hide article details"
+            className="
+              flex h-9 w-9 shrink-0
+              items-center justify-center
+              rounded-lg
+              text-[#687704]
+              transition-colors duration-200
+              hover:bg-[#F6F1EA]
+              hover:text-[#27430D]
+            "
           >
-            <SidebarMinimalisticIcon
-              size={19}
-              strokeWidth={1.6}
-              className="details-toggle-icon rotate-90 transition-transform duration-200"
-              aria-hidden="true"
-            />
+            {/*
+              Hidden state starts rotated downward.
+              When the checkbox is checked, it smoothly rotates upward.
+            */}
+            <span
+              className="
+                details-collapse-icon
+                flex rotate-180
+                items-center justify-center
+                transition-transform
+                duration-300
+                ease-in-out
+              "
+            >
+              <DetailsCollapseIcon size={22} />
+            </span>
           </span>
         </label>
 
-        {/* Everything in this section is hidden when Article details is collapsed. */}
+        {/* Everything in this section is hidden when Article Details is collapsed. */}
         <section className="hidden border-b border-[#27430D]/10 bg-white peer-checked:block">
           <div className="px-5 py-6">
             <div className="grid items-start gap-8 lg:grid-cols-2">
