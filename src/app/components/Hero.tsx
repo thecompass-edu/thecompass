@@ -5,20 +5,7 @@ export default function Hero() {
   return (
     <>
       <section className="hero">
-        <nav className="hero-nav">
-          <a href="/" className="hero-logo">
-            <span className="hero-logo-mark">✥</span>
-            <span>THE COMPASS</span>
-          </a>
-
-          <div className="hero-links">
-            <a href="/">Home</a>
-            <a href="/articles">Articles</a>
-            <a href="/about">About</a>
-            <a href="/contact">Contact</a>
-          </div>
-        </nav>
-
+        
         <div className="hero-content">
           <div className="hero-copy">
             <p className="hero-eyebrow">FINANCIAL LITERACY FOR YOUNG PEOPLE</p>

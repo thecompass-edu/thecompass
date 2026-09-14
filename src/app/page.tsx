@@ -1,6 +1,6 @@
 import Hero from "./components/Hero";
 import { TodayFeatured } from "@/sections/home/TodayFeatured";
-import PurposesSection from "@/sections/home/PurposesSection";
+import PurposeSection from "@/sections/home/PurposeSection";
 import RecentArticles from "@/sections/home/RecentArticles";
 
 export default function Home() {
@@ -8,7 +8,7 @@ export default function Home() {
     <main>
       <Hero />
       <TodayFeatured />
-      <PurposesSection />
+      <PurposeSection />
       <RecentArticles />
     </main>
   );
