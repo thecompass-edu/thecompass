@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useState,
+} from "react";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -9,6 +14,9 @@ import AuthorsInput from "@/components/admin/AuthorsInput";
 import CoverImageUpload from "@/components/admin/CoverImageUpload";
 
 import { createArticle } from "./actions";
+
+const ARTICLE_TOAST_STORAGE_KEY =
+  "compass-article-created";
 
 function generateSlug(value: string) {
   return value
@@ -19,8 +27,6 @@ function generateSlug(value: string) {
     .replace(/-+/g, "-");
 }
 
-// The icon points up when the details are visible.
-// It rotates down when the details are collapsed.
 function DetailsCollapseIcon({
   size = 22,
 }: {
@@ -59,26 +65,75 @@ export default function NewArticlePage() {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
 
-  // The slug follows the title until the admin manually changes it.
+  /*
+   * If the server rejected the article,
+   * remove the pending success notification.
+   */
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    sessionStorage.removeItem(
+      ARTICLE_TOAST_STORAGE_KEY,
+    );
+  }, [error]);
+
   function handleTitleChange(value: string) {
-    const previousGeneratedSlug = generateSlug(title);
+    const previousGeneratedSlug =
+      generateSlug(title);
 
     setTitle(value);
 
-    if (!slug || slug === previousGeneratedSlug) {
+    if (
+      !slug ||
+      slug === previousGeneratedSlug
+    ) {
       setSlug(generateSlug(value));
     }
   }
 
-  // Manual slug edits are cleaned into URL-friendly text.
   function handleSlugChange(value: string) {
     setSlug(generateSlug(value));
   }
 
+  function handleSubmitCapture(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    const nativeEvent =
+      event.nativeEvent as SubmitEvent;
+
+    const submitter = nativeEvent.submitter;
+
+    if (
+      !(submitter instanceof HTMLButtonElement)
+    ) {
+      return;
+    }
+
+    const status =
+      submitter.value === "published"
+        ? "published"
+        : "draft";
+
+    sessionStorage.setItem(
+      ARTICLE_TOAST_STORAGE_KEY,
+      JSON.stringify({
+        title:
+          title.trim() || "Untitled article",
+        status,
+        timestamp: Date.now(),
+      }),
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white text-[#27430D]">
-      <form action={createArticle}>
-        {/* The main header stays visible while the admin writes the article. */}
+      <form
+        action={createArticle}
+        onSubmitCapture={handleSubmitCapture}
+      >
+        {/* Main Header */}
         <header className="sticky top-0 z-50 border-b border-[#27430D]/10 bg-white/95 backdrop-blur">
           <div className="flex min-h-19 flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 flex-1 items-center gap-4">
@@ -99,7 +154,9 @@ export default function NewArticlePage() {
                 required
                 value={title}
                 onChange={(event) =>
-                  handleTitleChange(event.target.value)
+                  handleTitleChange(
+                    event.target.value,
+                  )
                 }
                 placeholder="Untitled article"
                 aria-label="Article title"
@@ -138,14 +195,14 @@ export default function NewArticlePage() {
           </div>
         </header>
 
-        {/* Errors from the server action are shown directly below the header. */}
+        {/* Server Error */}
         {error && (
           <div className="border-b border-red-200 bg-red-50 px-6 py-3 text-sm font-medium text-red-700">
             {error}
           </div>
         )}
 
-        {/* Checked means the Article Details section is visible. */}
+        {/* Article Details Toggle */}
         <input
           id="article-details-toggle"
           type="checkbox"
@@ -153,7 +210,7 @@ export default function NewArticlePage() {
           className="peer sr-only"
         />
 
-        {/* This bar remains below the main header while scrolling. */}
+        {/* Article Details Header */}
         <label
           htmlFor="article-details-toggle"
           className="
@@ -172,7 +229,8 @@ export default function NewArticlePage() {
             </h2>
 
             <p className="text-xs text-[#523A23]/40 sm:text-sm">
-              slug · excerpt · authors · category · cover image
+              slug · excerpt · authors · category ·
+              cover image
             </p>
           </div>
 
@@ -188,10 +246,6 @@ export default function NewArticlePage() {
               hover:text-[#27430D]
             "
           >
-            {/*
-              Hidden state starts rotated downward.
-              When the checkbox is checked, it smoothly rotates upward.
-            */}
             <span
               className="
                 details-collapse-icon
@@ -207,12 +261,13 @@ export default function NewArticlePage() {
           </span>
         </label>
 
-        {/* Everything in this section is hidden when Article Details is collapsed. */}
+        {/* Article Details */}
         <section className="hidden border-b border-[#27430D]/10 bg-white peer-checked:block">
           <div className="px-5 py-6">
             <div className="grid items-start gap-8 lg:grid-cols-2">
-              {/* Slug and excerpt */}
+              {/* Slug and Excerpt */}
               <div className="space-y-6">
+                {/* Slug */}
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <label
@@ -233,7 +288,9 @@ export default function NewArticlePage() {
                     type="text"
                     value={slug}
                     onChange={(event) =>
-                      handleSlugChange(event.target.value)
+                      handleSlugChange(
+                        event.target.value,
+                      )
                     }
                     placeholder="article-slug"
                     className="w-full rounded-xl border border-[#27430D]/15 bg-white px-4 py-3 font-mono text-sm text-[#27430D] outline-none transition placeholder:text-[#523A23]/25 focus:border-[#687704] focus:ring-4 focus:ring-[#687704]/5"
@@ -242,11 +299,13 @@ export default function NewArticlePage() {
                   <p className="mt-2 text-xs text-[#523A23]/35">
                     Public URL:{" "}
                     <span className="font-mono text-[#27430D]/55">
-                      /articles/{slug || "article-slug"}
+                      /articles/
+                      {slug || "article-slug"}
                     </span>
                   </p>
                 </div>
 
+                {/* Excerpt */}
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
@@ -277,23 +336,24 @@ export default function NewArticlePage() {
                   />
 
                   <p className="mt-2 text-sm text-[#523A23]/40">
-                    Shown on the article list and at the top of the article.
+                    Shown on the article list and at
+                    the top of the article.
                   </p>
                 </div>
               </div>
 
-              {/* Cover image */}
+              {/* Cover Image */}
               <div>
                 <CoverImageUpload required />
 
                 <p className="mt-2 text-sm text-[#523A23]/40">
-                  Used on the article list and at the top of the published
-                  article.
+                  Used on the article list and at the
+                  top of the published article.
                 </p>
               </div>
             </div>
 
-            {/* Author and category information */}
+            {/* Article Information */}
             <div className="mt-8 rounded-xl border border-[#27430D]/10 bg-white p-5">
               <div>
                 <h3 className="text-sm font-semibold text-[#27430D]">
@@ -301,7 +361,8 @@ export default function NewArticlePage() {
                 </h3>
 
                 <p className="mt-1 text-sm text-[#523A23]/40">
-                  Add everyone who wrote the article and choose its category.
+                  Add everyone who wrote the article
+                  and choose its category.
                 </p>
               </div>
 
@@ -337,7 +398,8 @@ export default function NewArticlePage() {
                   </div>
 
                   <p className="mt-2 text-xs text-[#523A23]/35">
-                    Used to group related articles across The Compass.
+                    Used to group related articles
+                    across The Compass.
                   </p>
                 </div>
               </div>
@@ -345,7 +407,7 @@ export default function NewArticlePage() {
           </div>
         </section>
 
-        {/* This label scrolls normally. */}
+        {/* Article Content Label */}
         <section className="bg-white px-5 pt-8">
           <div className="mx-auto max-w-6xl">
             <div className="mb-3 flex items-center justify-between gap-4">
@@ -366,10 +428,12 @@ export default function NewArticlePage() {
           </div>
         </section>
 
-        {/* Only the editor toolbar remains sticky while the article is being written. */}
+        {/* Editor */}
         <section className="bg-white px-5 pb-8">
           <div className="mx-auto max-w-6xl">
-            <ArticleEditor stickyToolbarOffset={132} />
+            <ArticleEditor
+              stickyToolbarOffset={132}
+            />
           </div>
         </section>
       </form>
