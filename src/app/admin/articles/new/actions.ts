@@ -1,11 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import {
+  revalidatePath,
+} from "next/cache";
 
-import { createClient } from "@/lib/supabase/server";
+import {
+  redirect,
+} from "next/navigation";
 
-const ARTICLE_IMAGE_BUCKET = "article-images";
+import {
+  createClient,
+} from "@/lib/supabase/server";
+
+const ARTICLE_IMAGE_BUCKET =
+  "article-images";
 
 const ALLOWED_COVER_IMAGE_TYPES = [
   "image/jpeg",
@@ -13,7 +21,12 @@ const ALLOWED_COVER_IMAGE_TYPES = [
   "image/webp",
 ];
 
-const MAX_COVER_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_COVER_IMAGE_SIZE =
+  10 * 1024 * 1024;
+
+type ArticleStatus =
+  | "draft"
+  | "published";
 
 function slugify(value: string) {
   return value
@@ -24,9 +37,65 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
-// Rich text can contain HTML even when it looks empty.
-// This checks whether the editor contains actual readable content.
-function hasMeaningfulContent(html: string) {
+/*
+ * Generates a unique article slug
+ * automatically from the title.
+ *
+ * Example:
+ * Saving Money -> saving-money
+ *
+ * If it already exists:
+ * Saving Money -> saving-money-2
+ */
+async function generateUniqueSlug(
+  supabase: Awaited<
+    ReturnType<typeof createClient>
+  >,
+  title: string,
+) {
+  const generatedSlug =
+    slugify(title);
+
+  const baseSlug =
+    generatedSlug || "article";
+
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (true) {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("articles")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        `Unable to generate article URL: ${error.message}`,
+      );
+    }
+
+    if (!data) {
+      return slug;
+    }
+
+    slug =
+      `${baseSlug}-${suffix}`;
+
+    suffix += 1;
+  }
+}
+
+/*
+ * Rich text can contain HTML even when
+ * it visually looks empty.
+ */
+function hasMeaningfulContent(
+  html: string,
+) {
   const text = html
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/g, " ")
@@ -35,25 +104,36 @@ function hasMeaningfulContent(html: string) {
   return text.length > 0;
 }
 
-// Authors arrive as multiple form values.
-// This removes empty entries and duplicate names before saving them.
-function getAuthors(formData: FormData) {
-  const submittedAuthors = formData
-    .getAll("authors")
-    .map((author) =>
-      String(author)
-        .trim()
-        .replace(/\s+/g, " "),
-    )
-    .filter(Boolean);
+/*
+ * Authors arrive as multiple values.
+ * Remove empty and duplicate names.
+ */
+function getAuthors(
+  formData: FormData,
+) {
+  const submittedAuthors =
+    formData
+      .getAll("authors")
+      .map((author) =>
+        String(author)
+          .trim()
+          .replace(/\s+/g, " "),
+      )
+      .filter(Boolean);
 
-  const uniqueAuthors: string[] = [];
+  const uniqueAuthors: string[] =
+    [];
 
-  for (const author of submittedAuthors) {
-    const alreadyExists = uniqueAuthors.some(
-      (existingAuthor) =>
-        existingAuthor.toLowerCase() === author.toLowerCase(),
-    );
+  for (
+    const author of
+    submittedAuthors
+  ) {
+    const alreadyExists =
+      uniqueAuthors.some(
+        (existingAuthor) =>
+          existingAuthor.toLowerCase() ===
+          author.toLowerCase(),
+      );
 
     if (!alreadyExists) {
       uniqueAuthors.push(author);
@@ -63,129 +143,242 @@ function getAuthors(formData: FormData) {
   return uniqueAuthors;
 }
 
-// Sending errors back through the URL lets the page display them
-// without losing the normal server-action flow.
-function redirectWithError(message: string): never {
+/*
+ * Send server errors back to the editor.
+ *
+ * "attempt" lets the toast system know
+ * whether saving a draft or publishing
+ * was the operation that failed.
+ */
+function redirectWithError(
+  message: string,
+  status: ArticleStatus,
+): never {
+  const params =
+    new URLSearchParams({
+      error: message,
+      attempt: status,
+    });
+
   redirect(
-    `/admin/articles/new?error=${encodeURIComponent(message)}`,
+    `/admin/articles/new?${params.toString()}`,
   );
 }
 
-export async function createArticle(formData: FormData) {
-  const supabase = await createClient();
+export async function createArticle(
+  formData: FormData,
+) {
+  const supabase =
+    await createClient();
 
-  // Make sure only an authenticated admin can create an article.
+  /*
+   * Only authenticated admins can
+   * create an article.
+   */
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?redirectTo=/admin/articles/new");
-  }
-
-  const title = String(formData.get("title") ?? "").trim();
-  const suppliedSlug = String(formData.get("slug") ?? "").trim();
-
-  const slug = slugify(suppliedSlug || title);
-
-  const excerpt = String(formData.get("excerpt") ?? "").trim();
-  const content = String(formData.get("content") ?? "").trim();
-  const category = String(formData.get("category") ?? "").trim();
-
-  const status =
-    formData.get("status") === "published"
-      ? "published"
-      : "draft";
-
-  const authors = getAuthors(formData);
-
-  // These checks are repeated on the server so the article
-  // cannot bypass validation by disabling browser validation.
-  if (!title) {
-    redirectWithError("Please enter an article title.");
-  }
-
-  if (!slug) {
-    redirectWithError("Please enter an article slug.");
-  }
-
-  if (!hasMeaningfulContent(content)) {
-    redirectWithError("Please write some article content.");
-  }
-
-  // Drafts can be saved before credits are complete,
-  // but a published article must identify at least one writer.
-  if (status === "published" && authors.length === 0) {
-    redirectWithError(
-      "Please add at least one author before publishing.",
+    redirect(
+      "/login?redirectTo=/admin/articles/new",
     );
   }
 
-  const coverImage = formData.get("cover_image");
+  const title = String(
+    formData.get("title") ?? "",
+  ).trim();
 
-  // The Compass requires every article to have a cover image.
+  const excerpt = String(
+    formData.get("excerpt") ?? "",
+  ).trim();
+
+  const content = String(
+    formData.get("content") ?? "",
+  ).trim();
+
+  const category = String(
+    formData.get("category") ?? "",
+  ).trim();
+
+  const status: ArticleStatus =
+    formData.get("status") ===
+    "published"
+      ? "published"
+      : "draft";
+
+  const authors =
+    getAuthors(formData);
+
+  /*
+   * Every article field is required
+   * before saving or publishing.
+   */
+  if (!title) {
+    redirectWithError(
+      "Please enter an article title.",
+      status,
+    );
+  }
+
+  if (!excerpt) {
+    redirectWithError(
+      "Please enter an article excerpt.",
+      status,
+    );
+  }
+
+  if (authors.length === 0) {
+    redirectWithError(
+      "Please add at least one author.",
+      status,
+    );
+  }
+
+  if (!category) {
+    redirectWithError(
+      "Please enter an article category.",
+      status,
+    );
+  }
+
+  if (
+    !hasMeaningfulContent(content)
+  ) {
+    redirectWithError(
+      "Please write some article content.",
+      status,
+    );
+  }
+
+  /*
+   * Generate the slug automatically.
+   */
+  let slug: string;
+
+  try {
+    slug =
+      await generateUniqueSlug(
+        supabase,
+        title,
+      );
+  } catch (error) {
+    redirectWithError(
+      error instanceof Error
+        ? error.message
+        : "Unable to generate the article URL.",
+      status,
+    );
+  }
+
+  const coverImage =
+    formData.get("cover_image");
+
   if (
     !(coverImage instanceof File) ||
     coverImage.size === 0
   ) {
-    redirectWithError("Please upload a cover image.");
-  }
-
-  if (
-    !ALLOWED_COVER_IMAGE_TYPES.includes(coverImage.type)
-  ) {
     redirectWithError(
-      "Cover image must be a JPG, PNG, or WebP file.",
+      "Please upload a cover image.",
+      status,
     );
   }
 
-  if (coverImage.size > MAX_COVER_IMAGE_SIZE) {
+  if (
+    !ALLOWED_COVER_IMAGE_TYPES.includes(
+      coverImage.type,
+    )
+  ) {
+    redirectWithError(
+      "Cover image must be a JPG, PNG, or WebP file.",
+      status,
+    );
+  }
+
+  if (
+    coverImage.size >
+    MAX_COVER_IMAGE_SIZE
+  ) {
     redirectWithError(
       "Cover image must be 10 MB or smaller.",
+      status,
     );
   }
 
   let extension = "jpg";
 
-  if (coverImage.type === "image/png") {
+  if (
+    coverImage.type ===
+    "image/png"
+  ) {
     extension = "png";
   }
 
-  if (coverImage.type === "image/webp") {
+  if (
+    coverImage.type ===
+    "image/webp"
+  ) {
     extension = "webp";
   }
 
   const coverPath =
     `covers/${crypto.randomUUID()}.${extension}`;
 
-  // Upload the cover before creating the article so its public URL
-  // can be stored with the article record.
-  const { error: uploadError } = await supabase.storage
-    .from(ARTICLE_IMAGE_BUCKET)
-    .upload(coverPath, coverImage, {
-      contentType: coverImage.type,
-      upsert: false,
-    });
+  /*
+   * Upload cover image before inserting
+   * the article so we can save its URL.
+   */
+  const {
+    error: uploadError,
+  } =
+    await supabase.storage
+      .from(
+        ARTICLE_IMAGE_BUCKET,
+      )
+      .upload(
+        coverPath,
+        coverImage,
+        {
+          contentType:
+            coverImage.type,
+          upsert: false,
+        },
+      );
 
   if (uploadError) {
     redirectWithError(
       `Cover image upload failed: ${uploadError.message}`,
+      status,
     );
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from(ARTICLE_IMAGE_BUCKET)
-    .getPublicUrl(coverPath);
+  const {
+    data: publicUrlData,
+  } =
+    supabase.storage
+      .from(
+        ARTICLE_IMAGE_BUCKET,
+      )
+      .getPublicUrl(
+        coverPath,
+      );
 
-  const coverImageUrl = publicUrlData.publicUrl;
+  const coverImageUrl =
+    publicUrlData.publicUrl;
 
   if (!coverImageUrl) {
     await supabase.storage
-      .from(ARTICLE_IMAGE_BUCKET)
-      .remove([coverPath]);
+      .from(
+        ARTICLE_IMAGE_BUCKET,
+      )
+      .remove([
+        coverPath,
+      ]);
 
     redirectWithError(
       "The cover image was uploaded, but its public URL could not be created.",
+      status,
     );
   }
 
@@ -194,41 +387,69 @@ export async function createArticle(formData: FormData) {
       ? new Date().toISOString()
       : null;
 
-  const { error: insertError } = await supabase
-    .from("articles")
-    .insert({
-      title,
-      slug,
-      excerpt: excerpt || null,
-      content,
-      category: category || null,
-      cover_image_url: coverImageUrl,
-      status,
+  const {
+    error: insertError,
+  } =
+    await supabase
+      .from("articles")
+      .insert({
+        title,
+        slug,
+        excerpt,
+        content,
+        category,
+        cover_image_url:
+          coverImageUrl,
+        status,
 
-      // The new array stores every writer credited on the article.
-      authors,
+        /*
+         * Store every credited author.
+         */
+        authors,
 
-      // Keep the first author in the old column temporarily.
-      // This prevents older parts of the site from breaking while
-      // they are being migrated to the new authors array.
-      author_name: authors[0] ?? null,
+        /*
+         * Keep the first author in
+         * the old column temporarily
+         * for older site code.
+         */
+        author_name:
+          authors[0],
 
-      published_at: publishedAt,
-    });
+        published_at:
+          publishedAt,
+      });
 
   if (insertError) {
-    // If the database insert fails, remove the uploaded image
-    // so an unused file is not left behind in Storage.
+    /*
+     * Don't leave unused cover images
+     * behind when the insert fails.
+     */
     await supabase.storage
-      .from(ARTICLE_IMAGE_BUCKET)
-      .remove([coverPath]);
+      .from(
+        ARTICLE_IMAGE_BUCKET,
+      )
+      .remove([
+        coverPath,
+      ]);
 
-    redirectWithError(insertError.message);
+    redirectWithError(
+      insertError.message,
+      status,
+    );
   }
 
   revalidatePath("/admin");
-  revalidatePath("/admin/articles");
+  revalidatePath(
+    "/admin/articles",
+  );
   revalidatePath("/");
 
+  /*
+   * Reaching this redirect means the
+   * article was successfully inserted.
+   *
+   * The Articles layout will consume
+   * the pending success notification.
+   */
   redirect("/admin/articles");
 }

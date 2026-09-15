@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useFormStatus } from "react-dom";
 
 import {
   DocumentTextIcon,
@@ -12,6 +13,7 @@ import {
 } from "@solar-icons/react/linear";
 
 import { logout } from "@/app/admin/actions";
+import ActionSpinner from "@/components/admin/ActionSpinner";
 
 type NavigationItem = {
   label: string;
@@ -45,6 +47,35 @@ const navigationItems: NavigationItem[] = [
     ),
   },
 ];
+
+function SignOutButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending ? true : undefined}
+      className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-[#523A23]/70 transition duration-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-60"
+    >
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg">
+        {pending ? (
+          <ActionSpinner />
+        ) : (
+          <LogoutIcon
+            size={20}
+            strokeWidth={1.7}
+            aria-hidden="true"
+          />
+        )}
+      </span>
+
+      <span>
+        {pending ? "Signing out…" : "Sign out"}
+      </span>
+    </button>
+  );
+}
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -147,20 +178,7 @@ export default function AdminSidebar() {
         </a>
 
         <form action={logout}>
-          <button
-            type="submit"
-            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-[#523A23]/70 transition duration-200 hover:bg-red-50 hover:text-red-600"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg">
-              <LogoutIcon
-                size={20}
-                strokeWidth={1.7}
-                aria-hidden="true"
-              />
-            </span>
-
-            <span>Sign out</span>
-          </button>
+          <SignOutButton />
         </form>
       </div>
     </aside>

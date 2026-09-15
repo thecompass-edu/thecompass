@@ -1,42 +1,54 @@
 import Link from "next/link";
 
 import ArticleActionsMenu from "@/components/admin/ArticleActionsMenu";
-import ArticleCreatedToast from "@/components/admin/ArticleCreatedToast";
-import ArticleDeletedToast from "@/components/admin/ArticleDeletedToast";
+
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ArticlesPage() {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
-  const { data: articles, error } = await supabase
+  const {
+    data: articles,
+    error,
+  } = await supabase
     .from("articles")
     .select(
       "id, title, slug, status, category, is_featured, published_at, created_at",
     )
-    .order("created_at", { ascending: false });
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (error) {
-    console.error("Failed to load articles:", error);
+    console.error(
+      "Failed to load articles:",
+      error,
+    );
   }
 
-  const articleList = articles ?? [];
+  const articleList =
+    articles ?? [];
 
-  const totalArticles = articleList.length;
+  const totalArticles =
+    articleList.length;
 
-  const publishedArticles = articleList.filter(
-    (article) => article.status === "published",
-  ).length;
+  const publishedArticles =
+    articleList.filter(
+      (article) =>
+        article.status ===
+        "published",
+    ).length;
 
-  const draftArticles = articleList.filter(
-    (article) => article.status === "draft",
-  ).length;
+  const draftArticles =
+    articleList.filter(
+      (article) =>
+        article.status ===
+        "draft",
+    ).length;
 
   return (
     <div className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-      {/* Toast Notifications */}
-      <ArticleCreatedToast />
-      <ArticleDeletedToast />
-
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -49,7 +61,9 @@ export default async function ArticlesPage() {
           </h1>
 
           <p className="mt-2 text-sm text-[#523A23]/60">
-            Create, edit, publish, and manage Compass articles.
+            Create, edit,
+            publish, and manage
+            Compass articles.
           </p>
         </div>
 
@@ -89,7 +103,8 @@ export default async function ArticlesPage() {
           </p>
 
           <p className="mt-2 text-sm text-[#523A23]/50">
-            Live on the public website
+            Live on the public
+            website
           </p>
         </div>
 
@@ -111,7 +126,8 @@ export default async function ArticlesPage() {
 
       {/* Article List */}
       <div className="mt-6 overflow-hidden rounded-2xl border border-[#27430D]/10 bg-white">
-        {articleList.length === 0 ? (
+        {articleList.length ===
+        0 ? (
           <div className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F6F1EA]">
               <svg
@@ -141,8 +157,10 @@ export default async function ArticlesPage() {
             </h3>
 
             <p className="mt-2 max-w-sm text-sm leading-6 text-[#523A23]/55">
-              Create your first article to start publishing content on The
-              Compass.
+              Create your first
+              article to start
+              publishing content on
+              The Compass.
             </p>
 
             <Link
@@ -180,71 +198,91 @@ export default async function ArticlesPage() {
               </thead>
 
               <tbody>
-                {articleList.map((article) => (
-                  <tr
-                    key={article.id}
-                    className="border-b border-[#27430D]/5 transition hover:bg-[#F6F1EA]/25 last:border-b-0"
-                  >
-                    {/* Article */}
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-[#27430D]">
-                          {article.title}
-                        </p>
-
-                        {article.is_featured && (
-                          <span className="rounded-full bg-[#687704]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#687704]">
-                            Featured
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="mt-1 text-xs text-[#523A23]/45">
-                        /{article.slug}
-                      </p>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-6 py-5">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                          article.status === "published"
-                            ? "bg-[#687704]/10 text-[#687704]"
-                            : "bg-[#523A23]/10 text-[#523A23]/70"
-                        }`}
-                      >
-                        {article.status}
-                      </span>
-                    </td>
-
-                    {/* Category */}
-                    <td className="px-6 py-5 text-sm text-[#523A23]/65">
-                      {article.category || "—"}
-                    </td>
-
-                    {/* Published Date */}
-                    <td className="px-6 py-5 text-sm text-[#523A23]/65">
-                      {article.published_at
-                        ? new Date(article.published_at).toLocaleDateString(
-                            "en-US",
+                {articleList.map(
+                  (article) => (
+                    <tr
+                      key={
+                        article.id
+                      }
+                      className="border-b border-[#27430D]/5 transition hover:bg-[#F6F1EA]/25 last:border-b-0"
+                    >
+                      {/* Article */}
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-[#27430D]">
                             {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            },
-                          )
-                        : "—"}
-                    </td>
+                              article.title
+                            }
+                          </p>
 
-                    {/* Actions */}
-                    <td className="w-20 px-4 py-5 text-center">
-                      <ArticleActionsMenu
-                        articleId={article.id}
-                        articleTitle={article.title}
-                      />
-                    </td>
-                  </tr>
-                ))}
+                          {article.is_featured && (
+                            <span className="rounded-full bg-[#687704]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#687704]">
+                              Featured
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-1 text-xs text-[#523A23]/45">
+                          /
+                          {
+                            article.slug
+                          }
+                        </p>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-5">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                            article.status ===
+                            "published"
+                              ? "bg-[#687704]/10 text-[#687704]"
+                              : "bg-[#523A23]/10 text-[#523A23]/70"
+                          }`}
+                        >
+                          {
+                            article.status
+                          }
+                        </span>
+                      </td>
+
+                      {/* Category */}
+                      <td className="px-6 py-5 text-sm text-[#523A23]/65">
+                        {article.category ||
+                          "—"}
+                      </td>
+
+                      {/* Published Date */}
+                      <td className="px-6 py-5 text-sm text-[#523A23]/65">
+                        {article.published_at
+                          ? new Date(
+                              article.published_at,
+                            ).toLocaleDateString(
+                              "en-US",
+                              {
+                                month:
+                                  "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )
+                          : "—"}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="w-20 px-4 py-5 text-center">
+                        <ArticleActionsMenu
+                          articleId={
+                            article.id
+                          }
+                          articleTitle={
+                            article.title
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           </div>
