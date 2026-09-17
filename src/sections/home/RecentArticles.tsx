@@ -1,42 +1,84 @@
-import Image, { StaticImageData } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 
-import article1 from "@/assets/RecentArticle/article-1.png";
-import article2 from "@/assets/RecentArticle/article-2.jpg";
+import { createClient } from "@/lib/supabase/server";
 
 type Article = {
-  id: number;
+  id: string;
   title: string;
-  excerpt: string;
-  date: string;
-  readTime: string;
-  image: StaticImageData;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  cover_image_url: string | null;
+  author_name: string | null;
+  category: string | null;
+  status: string;
+  is_featured: boolean | null;
+  published_at: string | null;
+  created_at: string;
 };
 
-const articles: Article[] = [
-  {
-    id: 1,
-    title: "Why Digital Literacy Matters More Than Ever",
-    excerpt:
-      "a harsh truth where the rich keep spending and the poor tries to survive",
-    date: "Sep 10, 2026",
-    readTime: "3 min read",
-    image: article1,
-  },
-  {
-    id: 2,
-    title: "Why Small Habits Matter More Than Big Goals",
-    excerpt:
-      "Big goals can give us direction, but the small things we do every day are often what actually determine whether we reach them.",
-    date: "Sep 10, 2026",
-    readTime: "3 min read",
-    image: article2,
-  },
-];
+function formatDate(date: string | null) {
+  if (!date) {
+    return "";
+  }
 
-export default function RecentArticles() {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+function getReadingTime(content: string) {
+  const textContent = content
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+
+  const words = textContent.split(/\s+/).filter(Boolean).length;
+
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+export default async function RecentArticles() {
+  const supabase = await createClient();
+
+  const { data: articles, error } = await supabase
+    .from("articles")
+    .select(
+      `
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        cover_image_url,
+        author_name,
+        category,
+        status,
+        is_featured,
+        published_at,
+        created_at
+      `,
+    )
+    .eq("status", "published")
+    .order("published_at", {
+      ascending: false,
+      nullsFirst: false,
+    })
+    .limit(6);
+
+  if (error) {
+    console.error("RECENT ARTICLES FETCH ERROR:", error);
+  }
+
+  const publishedArticles = ((articles ?? []) as Article[])
+    .filter((article) => !article.is_featured)
+    .slice(0, 2);
+
   return (
-    <section className="border-t border-[#27430D]/10 bg-[#F6F1EA]">
+    <section className="border-t border-[#27430D]/10 bg-[#FEFEFE]">
       <div className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
           {/* LEFT SIDE */}
@@ -62,61 +104,122 @@ export default function RecentArticles() {
                 className="hidden items-center gap-3 text-sm font-semibold text-[#27430D] transition-opacity hover:opacity-70 sm:flex"
               >
                 View all articles
+
                 <span aria-hidden="true">›</span>
               </Link>
             </div>
 
             {/* Article Cards */}
-            <div className="space-y-6">
-              {articles.map((article) => (
-                <article
-                  key={article.id}
-                  className="overflow-hidden rounded-2xl border border-[#27430D]/10 bg-[#FEFEFE]"
-                >
-                  <div className="grid md:grid-cols-[35%_1fr]">
-                    {/* Article Image */}
-                    <div className="relative min-h-60 overflow-hidden md:min-h-76.25">
-                      <Image
-                        src={article.image}
-                        alt={article.title}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 35vw"
-                      />
-                    </div>
+            {publishedArticles.length > 0 ? (
+              <div className="space-y-6">
+                {publishedArticles.map((article) => {
+                  const publishedDate = formatDate(
+                    article.published_at ?? article.created_at,
+                  );
 
-                    {/* Article Content */}
-                    <div className="flex flex-col justify-center px-6 py-7 sm:px-8 lg:px-9">
-                      <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#687704]">
-                        ARTICLE
-                      </p>
+                  const readingTime = getReadingTime(article.content);
 
-                      <h3 className="max-w-2xl text-2xl font-bold leading-tight text-[#27430D] sm:text-[28px]">
-                        {article.title}
-                      </h3>
+                  return (
+                    <article
+                      key={article.id}
+                      className="group overflow-hidden rounded-2xl border border-[#27430D]/10 bg-[#FEFEFE]"
+                    >
+                      <div className="grid md:grid-cols-[35%_1fr]">
+                        {/* Article Image */}
+                        <Link
+                          href={`/articles/${article.slug}`}
+                          className="relative min-h-60 overflow-hidden md:min-h-76.25"
+                        >
+                          {article.cover_image_url ? (
+                            <Image
+                              src={article.cover_image_url}
+                              alt={article.title}
+                              fill
+                              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.025]"
+                              sizes="(max-width: 768px) 100vw, 35vw"
+                            />
+                          ) : (
+                            <div className="flex h-full min-h-60 w-full items-center justify-center bg-[#F6F1EA] md:min-h-76.25">
+                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687704]/50">
+                                The Compass
+                              </p>
+                            </div>
+                          )}
+                        </Link>
 
-                      <p className="mt-4 max-w-2xl text-sm leading-7 text-[#7B886C]/75 sm:text-base">
-                        {article.excerpt}
-                      </p>
+                        {/* Article Content */}
+                        <div className="flex flex-col justify-center px-6 py-7 sm:px-8 lg:px-9">
+                          <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#687704]">
+                            {article.category || "Article"}
+                          </p>
 
-                      <div className="mt-4 flex items-center gap-3 text-sm text-[#7B886C]/50">
-                        <span>{article.date}</span>
-                        <span>·</span>
-                        <span>{article.readTime}</span>
+                          <Link href={`/articles/${article.slug}`}>
+                            <h3 className="max-w-2xl text-2xl font-bold leading-tight text-[#27430D] transition-colors duration-200 group-hover:text-[#687704] sm:text-[28px]">
+                              {article.title}
+                            </h3>
+                          </Link>
+
+                          {article.excerpt && (
+                            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#7B886C]/75 sm:text-base">
+                              {article.excerpt}
+                            </p>
+                          )}
+
+                          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[#7B886C]/50">
+                            {article.author_name && (
+                              <>
+                                <span>{article.author_name}</span>
+                                <span>·</span>
+                              </>
+                            )}
+
+                            <span>{publishedDate}</span>
+
+                            <span>·</span>
+
+                            <span>{readingTime} min read</span>
+                          </div>
+
+                          {/* Read Article - hover only */}
+                          <div className="mt-5 min-h-[24px]">
+                            <Link
+                              href={`/articles/${article.slug}`}
+                              className="
+                                inline-flex
+                                translate-y-2
+                                items-center
+                                gap-4
+                                font-semibold
+                                text-[#27430D]
+                                opacity-0
+                                transition-all
+                                duration-300
+                                ease-out
+
+                                group-hover:translate-y-0
+                                group-hover:opacity-100
+
+                                hover:opacity-70
+                              "
+                            >
+                              Read Article
+
+                              <span aria-hidden="true">›</span>
+                            </Link>
+                          </div>
+                        </div>
                       </div>
-
-                      <Link
-                        href="#"
-                        className="mt-5 inline-flex w-fit items-center gap-4 font-semibold text-[#27430D] transition-opacity hover:opacity-70"
-                      >
-                        Read Article
-                        <span aria-hidden="true">›</span>
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-[#27430D]/10 bg-[#FEFEFE] px-6 py-12 text-center">
+                <p className="text-sm text-[#523A23]/50">
+                  More articles are coming soon.
+                </p>
+              </div>
+            )}
 
             {/* Mobile View All */}
             <Link
@@ -124,6 +227,7 @@ export default function RecentArticles() {
               className="mt-7 flex items-center justify-center gap-3 rounded-xl border border-[#27430D]/10 bg-[#FEFEFE] py-4 text-sm font-semibold text-[#27430D] sm:hidden"
             >
               View all articles
+
               <span aria-hidden="true">›</span>
             </Link>
           </div>
@@ -187,6 +291,7 @@ export default function RecentArticles() {
                 className="mt-7 flex items-center justify-between rounded-xl border border-[#687704]/30 bg-[#F6F1EA] px-5 py-4 font-semibold text-[#27430D] transition-colors hover:bg-[#687704]/10"
               >
                 View Story
+
                 <span aria-hidden="true">→</span>
               </Link>
             </div>
