@@ -15,11 +15,15 @@ import {
 const ARTICLE_CREATED_STORAGE_KEY =
   "compass-article-created";
 
+const ARTICLE_UPDATED_STORAGE_KEY =
+  "compass-article-updated";
+
 const ARTICLE_DELETED_STORAGE_KEY =
   "compass-article-deleted";
 
 const TOAST_DURATION = 4500;
-const MAX_NOTIFICATION_AGE = 60_000;
+const MAX_NOTIFICATION_AGE =
+  60_000;
 
 type ToastType =
   | "success"
@@ -45,6 +49,16 @@ type ArticleCreatedNotification = {
   timestamp: number;
 };
 
+type ArticleUpdatedNotification = {
+  title: string;
+  action:
+    | "draft"
+    | "published"
+    | "updated"
+    | "unpublished";
+  timestamp: number;
+};
+
 type ArticleDeletedNotification = {
   title: string;
   timestamp: number;
@@ -56,12 +70,14 @@ type AdminToastEventDetail = {
   message: string;
 };
 
-/*
- * These functions only READ data and return
- * a toast payload.
- *
- * They do not update React state.
- */
+function isRecent(
+  timestamp: number,
+) {
+  return (
+    Date.now() - timestamp <
+    MAX_NOTIFICATION_AGE
+  );
+}
 
 function consumeCreatedNotification():
   ToastPayload | null {
@@ -74,10 +90,6 @@ function consumeCreatedNotification():
     return null;
   }
 
-  /*
-   * Consume immediately so the same
-   * notification cannot appear twice.
-   */
   sessionStorage.removeItem(
     ARTICLE_CREATED_STORAGE_KEY,
   );
@@ -88,12 +100,11 @@ function consumeCreatedNotification():
         stored,
       ) as ArticleCreatedNotification;
 
-    const isRecent =
-      Date.now() -
-        notification.timestamp <
-      MAX_NOTIFICATION_AGE;
-
-    if (!isRecent) {
+    if (
+      !isRecent(
+        notification.timestamp,
+      )
+    ) {
       return null;
     }
 
@@ -113,6 +124,82 @@ function consumeCreatedNotification():
       type: "success",
       title: "Draft saved",
       message: `“${notification.title}” was saved as a draft.`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function consumeUpdatedNotification():
+  ToastPayload | null {
+  const stored =
+    sessionStorage.getItem(
+      ARTICLE_UPDATED_STORAGE_KEY,
+    );
+
+  if (!stored) {
+    return null;
+  }
+
+  sessionStorage.removeItem(
+    ARTICLE_UPDATED_STORAGE_KEY,
+  );
+
+  try {
+    const notification =
+      JSON.parse(
+        stored,
+      ) as ArticleUpdatedNotification;
+
+    if (
+      !isRecent(
+        notification.timestamp,
+      )
+    ) {
+      return null;
+    }
+
+    if (
+      notification.action ===
+      "published"
+    ) {
+      return {
+        type: "success",
+        title:
+          "Article published",
+        message: `“${notification.title}” is now live on the website.`,
+      };
+    }
+
+    if (
+      notification.action ===
+      "unpublished"
+    ) {
+      return {
+        type: "success",
+        title:
+          "Article moved to drafts",
+        message: `“${notification.title}” is no longer visible on the public website.`,
+      };
+    }
+
+    if (
+      notification.action ===
+      "draft"
+    ) {
+      return {
+        type: "success",
+        title:
+          "Draft updated",
+        message: `Changes to “${notification.title}” were saved.`,
+      };
+    }
+
+    return {
+      type: "success",
+      title:
+        "Article updated",
+      message: `Changes to “${notification.title}” were saved successfully.`,
     };
   } catch {
     return null;
@@ -140,12 +227,11 @@ function consumeDeletedNotification():
         stored,
       ) as ArticleDeletedNotification;
 
-    const isRecent =
-      Date.now() -
-        notification.timestamp <
-      MAX_NOTIFICATION_AGE;
-
-    if (!isRecent) {
+    if (
+      !isRecent(
+        notification.timestamp,
+      )
+    ) {
       return null;
     }
 
@@ -244,10 +330,6 @@ export default function AdminToastHost() {
       null,
     );
 
-  /*
-   * One function is responsible for
-   * displaying every toast.
-   */
   const showToast =
     useCallback(
       (
@@ -262,17 +344,7 @@ export default function AdminToastHost() {
       [],
     );
 
-  /*
-   * Server actions may redirect back
-   * with:
-   *
-   * ?error=...
-   * &attempt=draft
-   *
-   * or
-   *
-   * &attempt=published
-   */
+  // Show errors returned by server actions.
   useEffect(() => {
     const error =
       searchParams.get(
@@ -288,12 +360,13 @@ export default function AdminToastHost() {
         "attempt",
       );
 
-    /*
-     * Never allow a stale success toast
-     * after the action failed.
-     */
+    // Remove pending success messages when an action fails.
     sessionStorage.removeItem(
       ARTICLE_CREATED_STORAGE_KEY,
+    );
+
+    sessionStorage.removeItem(
+      ARTICLE_UPDATED_STORAGE_KEY,
     );
 
     let title =
@@ -331,13 +404,6 @@ export default function AdminToastHost() {
     const query =
       params.toString();
 
-    /*
-     * Schedule the state update after
-     * this effect finishes.
-     *
-     * This avoids synchronous setState
-     * inside the effect itself.
-     */
     const timeout =
       window.setTimeout(
         () => {
@@ -369,16 +435,7 @@ export default function AdminToastHost() {
     showToast,
   ]);
 
-  /*
-   * Check pending notifications after
-   * navigating between admin routes.
-   *
-   * This handles:
-   *
-   * Save Draft
-   * Publish
-   * Create article
-   */
+  // Show pending notifications after navigation.
   useEffect(() => {
     const timeout =
       window.setTimeout(
@@ -386,11 +443,20 @@ export default function AdminToastHost() {
           const createdToast =
             consumeCreatedNotification();
 
-          if (
-            createdToast
-          ) {
+          if (createdToast) {
             showToast(
               createdToast,
+            );
+
+            return;
+          }
+
+          const updatedToast =
+            consumeUpdatedNotification();
+
+          if (updatedToast) {
+            showToast(
+              updatedToast,
             );
 
             return;
@@ -399,9 +465,7 @@ export default function AdminToastHost() {
           const deletedToast =
             consumeDeletedNotification();
 
-          if (
-            deletedToast
-          ) {
+          if (deletedToast) {
             showToast(
               deletedToast,
             );
@@ -420,42 +484,39 @@ export default function AdminToastHost() {
     showToast,
   ]);
 
-  /*
-   * Some actions happen without a route
-   * change.
-   *
-   * Delete currently works this way,
-   * so ArticleActionsMenu dispatches
-   * "article-deleted".
-   *
-   * "admin-toast" is the reusable event
-   * that future admin actions can use.
-   */
+  // Listen for admin actions that do not change routes.
   useEffect(() => {
     function handleArticleCreated() {
       const nextToast =
         consumeCreatedNotification();
 
-      if (!nextToast) {
-        return;
+      if (nextToast) {
+        showToast(
+          nextToast,
+        );
       }
+    }
 
-      showToast(
-        nextToast,
-      );
+    function handleArticleUpdated() {
+      const nextToast =
+        consumeUpdatedNotification();
+
+      if (nextToast) {
+        showToast(
+          nextToast,
+        );
+      }
     }
 
     function handleArticleDeleted() {
       const nextToast =
         consumeDeletedNotification();
 
-      if (!nextToast) {
-        return;
+      if (nextToast) {
+        showToast(
+          nextToast,
+        );
       }
-
-      showToast(
-        nextToast,
-      );
     }
 
     function handleGenericToast(
@@ -491,6 +552,11 @@ export default function AdminToastHost() {
     );
 
     window.addEventListener(
+      "article-updated",
+      handleArticleUpdated,
+    );
+
+    window.addEventListener(
       "article-deleted",
       handleArticleDeleted,
     );
@@ -507,6 +573,11 @@ export default function AdminToastHost() {
       );
 
       window.removeEventListener(
+        "article-updated",
+        handleArticleUpdated,
+      );
+
+      window.removeEventListener(
         "article-deleted",
         handleArticleDeleted,
       );
@@ -518,10 +589,6 @@ export default function AdminToastHost() {
     };
   }, [showToast]);
 
-  /*
-   * Automatically dismiss the active
-   * notification after a few seconds.
-   */
   useEffect(() => {
     if (!toast) {
       return;
@@ -563,7 +630,7 @@ export default function AdminToastHost() {
           : "polite"
       }
       className={`
-        fixed bottom-5 right-5 z-11000
+        fixed bottom-5 right-5 z-130
         w-[calc(100%-2.5rem)]
         max-w-105
         overflow-hidden

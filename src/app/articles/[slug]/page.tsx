@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import ArticleViewTracker from "@/components/analytics/ArticleViewTracker";
 import Navbar from "@/components/home/Navbar";
 
+import { sanitizeArticleHtml } from "@/lib/security/sanitizeArticleHtml";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -46,9 +47,15 @@ function getReadingTime(content: string) {
     .replace(/&nbsp;/g, " ")
     .trim();
 
-  const words = textContent.split(/\s+/).filter(Boolean).length;
+  const words = textContent
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
 
-  return Math.max(1, Math.ceil(words / 200));
+  return Math.max(
+    1,
+    Math.ceil(words / 200),
+  );
 }
 
 export default async function ArticlePage({
@@ -58,29 +65,33 @@ export default async function ArticlePage({
 
   const supabase = await createClient();
 
-  const { data: article, error } = await supabase
-    .from("articles")
-    .select(
-      `
-        id,
-        title,
-        slug,
-        excerpt,
-        content,
-        cover_image_url,
-        author_name,
-        category,
-        status,
-        published_at,
-        created_at
-      `,
-    )
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle<Article>();
+  const { data: article, error } =
+    await supabase
+      .from("articles")
+      .select(
+        `
+          id,
+          title,
+          slug,
+          excerpt,
+          content,
+          cover_image_url,
+          author_name,
+          category,
+          status,
+          published_at,
+          created_at
+        `,
+      )
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle<Article>();
 
   if (error) {
-    console.error("PUBLIC ARTICLE FETCH ERROR:", error);
+    console.error(
+      "PUBLIC ARTICLE FETCH ERROR:",
+      error,
+    );
   }
 
   if (error || !article) {
@@ -88,19 +99,31 @@ export default async function ArticlePage({
   }
 
   const publishedDate = formatDate(
-    article.published_at ?? article.created_at,
+    article.published_at ??
+      article.created_at,
   );
 
-  const readingTime = getReadingTime(article.content);
+  const readingTime = getReadingTime(
+    article.content,
+  );
+
+  /*
+   * Sanitize stored article HTML before
+   * rendering it with dangerouslySetInnerHTML.
+   */
+  const safeArticleContent =
+    sanitizeArticleHtml(article.content);
 
   return (
     <main className="min-h-screen bg-white text-[#27430D]">
       {/* Record article view */}
-      <ArticleViewTracker articleId={article.id} />
+      <ArticleViewTracker
+        articleId={article.id}
+      />
 
       <Navbar />
 
-      <article className="mx-auto w-full max-w-[1120px] px-5 pb-16 pt-12 sm:px-8 lg:px-10 lg:pb-20 lg:pt-16">
+      <article className="mx-auto w-full max-w-280 px-5 pb-16 pt-12 sm:px-8 lg:px-10 lg:pb-20 lg:pt-16">
         {/* Breadcrumbs */}
         <nav
           aria-label="Breadcrumb"
@@ -175,18 +198,27 @@ export default async function ArticlePage({
                   </span>
                 </span>
 
-                <span aria-hidden="true">•</span>
+                <span aria-hidden="true">
+                  •
+                </span>
               </>
             )}
 
             {publishedDate && (
               <>
-                <span>{publishedDate}</span>
-                <span aria-hidden="true">•</span>
+                <span>
+                  {publishedDate}
+                </span>
+
+                <span aria-hidden="true">
+                  •
+                </span>
               </>
             )}
 
-            <span>{readingTime} min read</span>
+            <span>
+              {readingTime} min read
+            </span>
           </div>
         </header>
 
@@ -265,7 +297,7 @@ export default async function ArticlePage({
             [&_hr]:border-[#27430D]/10
           "
           dangerouslySetInnerHTML={{
-            __html: article.content,
+            __html: safeArticleContent,
           }}
         />
       </article>

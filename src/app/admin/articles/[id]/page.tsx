@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import ArticleEditor from "@/components/admin/ArticleEditor";
 import CoverImageUpload from "@/components/admin/CoverImageUpload";
+import EditArticleActions from "@/components/admin/EditArticleActions";
+import UnsavedChangesGuard from "@/components/admin/UnsavedChangesGuard";
 import { createClient } from "@/lib/supabase/server";
 
 import { updateArticle } from "./actions";
@@ -10,11 +12,18 @@ type EditArticlePageProps = {
   params: Promise<{
     id: string;
   }>;
-
-  searchParams: Promise<{
-    error?: string;
-  }>;
 };
+
+function RequiredMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="text-red-500"
+    >
+      *
+    </span>
+  );
+}
 
 function DetailsCollapseIcon({
   size = 22,
@@ -49,21 +58,25 @@ function DetailsCollapseIcon({
 
 export default async function EditArticlePage({
   params,
-  searchParams,
 }: EditArticlePageProps) {
   const { id } = await params;
-  const { error: pageError } = await searchParams;
 
   const supabase = await createClient();
 
-  const { data: article, error: fetchError } = await supabase
+  const {
+    data: article,
+    error: fetchError,
+  } = await supabase
     .from("articles")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
   if (fetchError) {
-    console.error("ARTICLE FETCH ERROR:", fetchError);
+    console.error(
+      "ARTICLE FETCH ERROR:",
+      fetchError,
+    );
 
     return (
       <div className="min-h-screen bg-white px-6 py-8 text-[#27430D] sm:px-8 lg:px-10 lg:py-10">
@@ -80,12 +93,8 @@ export default async function EditArticlePage({
           </h1>
 
           <p className="mt-2 text-sm text-[#523A23]/60">
-            Supabase returned an error while trying to load this article.
+            Something went wrong while trying to load this article.
           </p>
-
-          <pre className="mt-5 overflow-x-auto rounded-xl bg-red-50 p-4 text-xs text-red-700">
-            {JSON.stringify(fetchError, null, 2)}
-          </pre>
         </div>
       </div>
     );
@@ -130,54 +139,70 @@ export default async function EditArticlePage({
     );
   }
 
-  const updateArticleWithId = updateArticle.bind(null, article.id);
+  const updateArticleWithId =
+    updateArticle.bind(
+      null,
+      article.id,
+    );
 
   const currentStatus =
-    article.status === "published" ? "Published" : "Draft";
+    article.status === "published"
+      ? "Published"
+      : "Draft";
+
+  const primaryAuthor =
+    Array.isArray(article.authors) &&
+    article.authors.length > 0
+      ? String(article.authors[0])
+      : article.author_name ?? "";
 
   return (
     <div className="min-h-screen bg-white text-[#27430D]">
-      <form action={updateArticleWithId}>
-        {/* Preserve the existing featured value until it is added
-            to the new editor layout. */}
+      <form
+        action={
+          updateArticleWithId
+        }
+      >
+        <UnsavedChangesGuard />
+        {/* Keep values that are not edited directly here. */}
+        <input
+          type="hidden"
+          name="slug"
+          value={
+            article.slug ?? ""
+          }
+        />
+
         <input
           type="hidden"
           name="is_featured"
-          value={article.is_featured ? "on" : ""}
+          value={
+            article.is_featured
+              ? "on"
+              : ""
+          }
         />
 
-        {/* Main sticky header */}
+        {/* Header */}
         <header className="sticky top-0 z-50 border-b border-[#27430D]/10 bg-white/95 backdrop-blur">
-          <div className="flex min-h-19 flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 flex-1 items-center gap-4">
-              <Link
-                href="/admin/articles"
-                className="flex shrink-0 items-center gap-2 text-sm font-medium text-[#523A23]/65 transition hover:text-[#27430D]"
-              >
-                <span>←</span>
-                <span>Articles</span>
-              </Link>
+          <div className="flex min-h-19 flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href="/admin/articles"
+              className="flex shrink-0 items-center gap-2 text-sm font-medium text-[#523A23]/65 transition hover:text-[#27430D]"
+            >
+              <span>←</span>
 
-              <div className="hidden h-7 w-px bg-[#27430D]/10 sm:block" />
-
-              <input
-                id="title"
-                name="title"
-                type="text"
-                required
-                defaultValue={article.title}
-                placeholder="Untitled article"
-                aria-label="Article title"
-                className="min-w-0 flex-1 border-none bg-transparent text-xl font-semibold tracking-tight text-[#27430D] outline-none placeholder:text-[#523A23]/30 sm:text-2xl"
-              />
-            </div>
+              <span>
+                Articles
+              </span>
+            </Link>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* Current Status */}
               <div className="flex items-center gap-2 rounded-full border border-[#27430D]/10 bg-white px-3 py-1.5 text-xs font-medium text-[#523A23]/65">
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    article.status === "published"
+                    article.status ===
+                    "published"
                       ? "bg-[#27430D]"
                       : "bg-[#687704]"
                   }`}
@@ -190,37 +215,22 @@ export default async function EditArticlePage({
                 Saved
               </span>
 
-              {/* Save as Draft */}
-              <button
-                type="submit"
-                name="status"
-                value="draft"
-                className="rounded-xl border border-[#27430D]/20 bg-white px-5 py-3 text-sm font-semibold text-[#27430D] transition hover:border-[#687704]/50 hover:bg-[#687704]/5"
-              >
-                Save Draft
-              </button>
-
-              {/* Publish */}
-              <button
-                type="submit"
-                name="status"
-                value="published"
-                className="rounded-xl bg-[#27430D] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#687704]"
-              >
-                {article.status === "published" ? "Update" : "Publish"}
-              </button>
+              <EditArticleActions
+                articleTitle={
+                  article.title
+                }
+                currentStatus={
+                  article.status ===
+                  "published"
+                    ? "published"
+                    : "draft"
+                }
+              />
             </div>
           </div>
         </header>
 
-        {/* Error */}
-        {pageError && (
-          <div className="border-b border-red-200 bg-red-50 px-6 py-3 text-sm font-medium text-red-700">
-            {pageError}
-          </div>
-        )}
-
-        {/* Controls whether Article Details is open */}
+        {/* Article details toggle */}
         <input
           id="article-details-toggle"
           type="checkbox"
@@ -228,7 +238,7 @@ export default async function EditArticlePage({
           className="peer sr-only"
         />
 
-        {/* Sticky Article Details Bar */}
+        {/* Article details header */}
         <label
           htmlFor="article-details-toggle"
           className="
@@ -247,7 +257,9 @@ export default async function EditArticlePage({
             </h2>
 
             <p className="text-xs text-[#523A23]/40 sm:text-sm">
-              slug · excerpt · authors · category · cover image
+              title · excerpt ·
+              author · category ·
+              cover image
             </p>
           </div>
 
@@ -273,67 +285,60 @@ export default async function EditArticlePage({
                 ease-in-out
               "
             >
-              <DetailsCollapseIcon size={22} />
+              <DetailsCollapseIcon
+                size={22}
+              />
             </span>
           </span>
         </label>
 
-        {/* Article Details */}
+        {/* Article details */}
         <section className="hidden border-b border-[#27430D]/10 bg-white peer-checked:block">
           <div className="px-5 py-6">
             <div className="grid items-start gap-8 lg:grid-cols-2">
-              {/* Slug and excerpt */}
+              {/* Title and excerpt */}
               <div className="space-y-6">
-                {/* Slug */}
                 <div>
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <label
-                      htmlFor="slug"
-                      className="text-sm font-semibold text-[#27430D]"
-                    >
-                      Slug
-                    </label>
-
-                    <span className="text-xs text-[#523A23]/35">
-                      Article URL
-                    </span>
-                  </div>
+                  <label
+                    htmlFor="title"
+                    className="text-sm font-semibold text-[#27430D]"
+                  >
+                    Title{" "}
+                    <RequiredMark />
+                  </label>
 
                   <input
-                    id="slug"
-                    name="slug"
+                    id="title"
+                    name="title"
                     type="text"
-                    defaultValue={article.slug}
-                    placeholder="article-slug"
-                    className="w-full rounded-xl border border-[#27430D]/15 bg-white px-4 py-3 font-mono text-sm text-[#27430D] outline-none transition placeholder:text-[#523A23]/25 focus:border-[#687704] focus:ring-4 focus:ring-[#687704]/5"
+                    required
+                    autoFocus
+                    defaultValue={
+                      article.title
+                    }
+                    placeholder="Enter article title"
+                    className="mt-3 w-full rounded-xl border border-[#27430D]/15 bg-white px-4 py-3.5 text-base font-medium text-[#27430D] outline-none transition placeholder:font-normal placeholder:text-[#523A23]/30 focus:border-[#687704] focus:ring-4 focus:ring-[#687704]/5"
                   />
 
                   <p className="mt-2 text-xs text-[#523A23]/35">
-                    Public URL:{" "}
-                    <span className="font-mono text-[#27430D]/55">
-                      /articles/{article.slug || "article-slug"}
-                    </span>
+                    The article URL is
+                    managed automatically.
                   </p>
                 </div>
 
-                {/* Excerpt */}
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <label
-                        htmlFor="excerpt"
-                        className="text-sm font-semibold text-[#27430D]"
-                      >
-                        Excerpt
-                      </label>
-
-                      <span className="text-xs text-[#523A23]/35">
-                        Optional
-                      </span>
-                    </div>
+                    <label
+                      htmlFor="excerpt"
+                      className="text-sm font-semibold text-[#27430D]"
+                    >
+                      Excerpt{" "}
+                      <RequiredMark />
+                    </label>
 
                     <span className="text-xs text-[#523A23]/35">
-                      160 recommended
+                      Maximum 160
+                      characters
                     </span>
                   </div>
 
@@ -342,31 +347,43 @@ export default async function EditArticlePage({
                     name="excerpt"
                     rows={6}
                     maxLength={160}
-                    defaultValue={article.excerpt ?? ""}
+                    required
+                    defaultValue={
+                      article.excerpt ??
+                      ""
+                    }
                     placeholder="One or two sentences summarising the article."
                     className="w-full resize-y rounded-xl border border-[#27430D]/15 bg-white px-4 py-3 text-sm leading-6 text-[#523A23] outline-none transition placeholder:text-[#523A23]/25 focus:border-[#687704] focus:ring-4 focus:ring-[#687704]/5"
                   />
 
                   <p className="mt-2 text-sm text-[#523A23]/40">
-                    Shown on the article list and at the top of the article.
+                    Shown on the
+                    article list and at
+                    the top of the
+                    article.
                   </p>
                 </div>
               </div>
 
-              {/* Cover Image */}
+              {/* Cover image */}
               <div>
                 <CoverImageUpload
-                  currentImageUrl={article.cover_image_url}
+                  currentImageUrl={
+                    article.cover_image_url
+                  }
+                  required
                 />
 
                 <p className="mt-2 text-sm text-[#523A23]/40">
-                  Used on the article list and at the top of the published
+                  Used on the article
+                  list and at the top
+                  of the published
                   article.
                 </p>
               </div>
             </div>
 
-            {/* Article Information */}
+            {/* Article information */}
             <div className="mt-8 rounded-xl border border-[#27430D]/10 bg-white p-5">
               <div>
                 <h3 className="text-sm font-semibold text-[#27430D]">
@@ -374,76 +391,74 @@ export default async function EditArticlePage({
                 </h3>
 
                 <p className="mt-1 text-sm text-[#523A23]/40">
-                  Update the author and category for this article.
+                  Update the author
+                  and category for
+                  this article.
                 </p>
               </div>
 
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
                 {/* Author */}
                 <div className="px-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <label
-                      htmlFor="author_name"
-                      className="text-sm font-semibold text-[#27430D]"
-                    >
-                      Author{" "}
-                      <span
-                        aria-hidden="true"
-                        className="text-red-500"
-                      >
-                        *
-                      </span>
-                    </label>
-
-                    <span className="text-xs text-[#523A23]/35">
-                      Required to publish
-                    </span>
-                  </div>
+                  <label
+                    htmlFor="author_name"
+                    className="text-sm font-semibold text-[#27430D]"
+                  >
+                    Author{" "}
+                    <RequiredMark />
+                  </label>
 
                   <div className="mt-3">
                     <input
                       id="author_name"
                       name="author_name"
                       type="text"
-                      defaultValue={article.author_name ?? ""}
+                      required
+                      defaultValue={
+                        primaryAuthor
+                      }
                       placeholder="Author name"
                       className="w-full rounded-xl border border-[#27430D]/15 bg-white px-4 py-3.5 text-sm text-[#27430D] outline-none transition placeholder:text-[#523A23]/30 focus:border-[#687704] focus:ring-4 focus:ring-[#687704]/5"
                     />
                   </div>
 
                   <p className="mt-2 text-xs text-[#523A23]/35">
-                    The name displayed as the author of this article.
+                    The name displayed
+                    as the author of
+                    this article.
                   </p>
                 </div>
 
                 {/* Category */}
                 <div className="border-t border-[#27430D]/10 px-3 pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <label
-                      htmlFor="category"
-                      className="text-sm font-semibold text-[#27430D]"
-                    >
-                      Category
-                    </label>
-
-                    <span className="text-xs text-[#523A23]/35">
-                      Optional
-                    </span>
-                  </div>
+                  <label
+                    htmlFor="category"
+                    className="text-sm font-semibold text-[#27430D]"
+                  >
+                    Category{" "}
+                    <RequiredMark />
+                  </label>
 
                   <div className="mt-3">
                     <input
                       id="category"
                       name="category"
                       type="text"
-                      defaultValue={article.category ?? ""}
+                      required
+                      defaultValue={
+                        article.category ??
+                        ""
+                      }
                       placeholder="e.g. Financial Literacy"
                       className="w-full rounded-xl border border-[#27430D]/15 bg-white px-4 py-3.5 text-sm text-[#27430D] outline-none transition placeholder:text-[#523A23]/30 focus:border-[#687704] focus:ring-4 focus:ring-[#687704]/5"
                     />
                   </div>
 
                   <p className="mt-2 text-xs text-[#523A23]/35">
-                    Used to group related articles across The Compass.
+                    Used to group
+                    related articles
+                    across The
+                    Compass.
                   </p>
                 </div>
               </div>
@@ -451,33 +466,33 @@ export default async function EditArticlePage({
           </div>
         </section>
 
-        {/* Article Content Label */}
+        {/* Article content */}
         <section className="bg-white px-5 pt-8">
           <div className="mx-auto max-w-6xl">
             <div className="mb-3 flex items-center justify-between gap-4">
               <label className="text-sm font-semibold text-[#27430D]">
                 Article content{" "}
-                <span
-                  aria-hidden="true"
-                  className="text-red-500"
-                >
-                  *
-                </span>
+                <RequiredMark />
               </label>
 
               <span className="text-xs text-[#523A23]/35">
-                Required to save or publish
+                Required to save or
+                publish
               </span>
             </div>
           </div>
         </section>
 
-        {/* Rich Text Editor */}
+        {/* Editor */}
         <section className="bg-white px-5 pb-8">
           <div className="mx-auto max-w-6xl">
             <ArticleEditor
-              initialContent={article.content ?? ""}
-              stickyToolbarOffset={132}
+              initialContent={
+                article.content ?? ""
+              }
+              stickyToolbarOffset={
+                132
+              }
             />
           </div>
         </section>

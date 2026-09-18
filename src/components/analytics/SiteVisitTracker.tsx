@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 const VISITOR_STORAGE_KEY = "compass_visitor_id";
 const SESSION_STORAGE_KEY = "compass_session_id";
@@ -11,26 +12,55 @@ function getVisitorId() {
 
   if (!visitorId) {
     visitorId = crypto.randomUUID();
-    localStorage.setItem(VISITOR_STORAGE_KEY, visitorId);
+
+    localStorage.setItem(
+      VISITOR_STORAGE_KEY,
+      visitorId,
+    );
   }
 
   return visitorId;
 }
 
 function getSessionId() {
-  let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
+  let sessionId = sessionStorage.getItem(
+    SESSION_STORAGE_KEY,
+  );
 
   if (!sessionId) {
     sessionId = crypto.randomUUID();
-    sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+
+    sessionStorage.setItem(
+      SESSION_STORAGE_KEY,
+      sessionId,
+    );
   }
 
   return sessionId;
 }
 
 export default function SiteVisitTracker() {
+  const pathname = usePathname();
+
   useEffect(() => {
-    const alreadyRecorded = sessionStorage.getItem(VISIT_RECORDED_KEY);
+    /*
+     * Do not count admin/login activity
+     * as public website traffic.
+     */
+    const isAdminRoute =
+      pathname.startsWith("/admin");
+
+    const isLoginRoute =
+      pathname.startsWith("/login");
+
+    if (isAdminRoute || isLoginRoute) {
+      return;
+    }
+
+    const alreadyRecorded =
+      sessionStorage.getItem(
+        VISIT_RECORDED_KEY,
+      );
 
     if (alreadyRecorded) {
       return;
@@ -41,27 +71,39 @@ export default function SiteVisitTracker() {
 
     async function recordVisit() {
       try {
-        const response = await fetch("/api/analytics/visit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await fetch(
+          "/api/analytics/visit",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              visitorId,
+              sessionId,
+            }),
           },
-          body: JSON.stringify({
-            visitorId,
-            sessionId,
-          }),
-        });
+        );
 
         if (response.ok) {
-          sessionStorage.setItem(VISIT_RECORDED_KEY, "true");
+          sessionStorage.setItem(
+            VISIT_RECORDED_KEY,
+            "true",
+          );
         }
       } catch (error) {
-        console.error("VISIT TRACKING ERROR:", error);
+        console.error(
+          "VISIT TRACKING ERROR:",
+          error,
+        );
       }
     }
 
     void recordVisit();
-  }, []);
+  }, [pathname]);
 
   return null;
 }

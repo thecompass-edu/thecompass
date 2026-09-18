@@ -1,19 +1,12 @@
 "use server";
 
-import {
-  revalidatePath,
-} from "next/cache";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import {
-  redirect,
-} from "next/navigation";
+import { sanitizeArticleHtml } from "@/lib/security/sanitizeArticleHtml";
+import { createClient } from "@/lib/supabase/server";
 
-import {
-  createClient,
-} from "@/lib/supabase/server";
-
-const ARTICLE_IMAGE_BUCKET =
-  "article-images";
+const ARTICLE_IMAGE_BUCKET = "article-images";
 
 const ALLOWED_COVER_IMAGE_TYPES = [
   "image/jpeg",
@@ -37,16 +30,7 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
-/*
- * Generates a unique article slug
- * automatically from the title.
- *
- * Example:
- * Saving Money -> saving-money
- *
- * If it already exists:
- * Saving Money -> saving-money-2
- */
+// Create a unique slug from the article title.
 async function generateUniqueSlug(
   supabase: Awaited<
     ReturnType<typeof createClient>
@@ -89,10 +73,7 @@ async function generateUniqueSlug(
   }
 }
 
-/*
- * Rich text can contain HTML even when
- * it visually looks empty.
- */
+// Check if the rich text actually contains content.
 function hasMeaningfulContent(
   html: string,
 ) {
@@ -104,10 +85,7 @@ function hasMeaningfulContent(
   return text.length > 0;
 }
 
-/*
- * Authors arrive as multiple values.
- * Remove empty and duplicate names.
- */
+// Clean up author names and remove duplicates.
 function getAuthors(
   formData: FormData,
 ) {
@@ -143,13 +121,7 @@ function getAuthors(
   return uniqueAuthors;
 }
 
-/*
- * Send server errors back to the editor.
- *
- * "attempt" lets the toast system know
- * whether saving a draft or publishing
- * was the operation that failed.
- */
+// Send the user back to the editor with an error.
 function redirectWithError(
   message: string,
   status: ArticleStatus,
@@ -171,19 +143,41 @@ export async function createArticle(
   const supabase =
     await createClient();
 
-  /*
-   * Only authenticated admins can
-   * create an article.
-   */
+  // Make sure the user is logged in.
   const {
     data: { user },
+    error: userError,
   } =
     await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect(
       "/login?redirectTo=/admin/articles/new",
     );
+  }
+
+  // Make sure the logged-in user is an admin.
+  const {
+    data: adminAccess,
+    error: adminAccessError,
+  } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (
+    adminAccessError ||
+    !adminAccess
+  ) {
+    if (adminAccessError) {
+      console.error(
+        "CREATE ARTICLE ADMIN AUTHORIZATION ERROR:",
+        adminAccessError,
+      );
+    }
+
+    redirect("/");
   }
 
   const title = String(
@@ -194,9 +188,15 @@ export async function createArticle(
     formData.get("excerpt") ?? "",
   ).trim();
 
-  const content = String(
+  const rawContent = String(
     formData.get("content") ?? "",
   ).trim();
+
+  // Sanitize the article HTML before saving it.
+  const content =
+    sanitizeArticleHtml(
+      rawContent,
+    ).trim();
 
   const category = String(
     formData.get("category") ?? "",
@@ -211,10 +211,7 @@ export async function createArticle(
   const authors =
     getAuthors(formData);
 
-  /*
-   * Every article field is required
-   * before saving or publishing.
-   */
+  // Validate required fields.
   if (!title) {
     redirectWithError(
       "Please enter an article title.",
@@ -252,9 +249,7 @@ export async function createArticle(
     );
   }
 
-  /*
-   * Generate the slug automatically.
-   */
+  // Generate the article URL.
   let slug: string;
 
   try {
@@ -275,6 +270,7 @@ export async function createArticle(
   const coverImage =
     formData.get("cover_image");
 
+  // Validate the cover image.
   if (
     !(coverImage instanceof File) ||
     coverImage.size === 0
@@ -325,10 +321,7 @@ export async function createArticle(
   const coverPath =
     `covers/${crypto.randomUUID()}.${extension}`;
 
-  /*
-   * Upload cover image before inserting
-   * the article so we can save its URL.
-   */
+  // Upload the cover image.
   const {
     error: uploadError,
   } =
@@ -387,6 +380,7 @@ export async function createArticle(
       ? new Date().toISOString()
       : null;
 
+  // Save the article.
   const {
     error: insertError,
   } =
@@ -398,20 +392,14 @@ export async function createArticle(
         excerpt,
         content,
         category,
+
         cover_image_url:
           coverImageUrl,
-        status,
 
-        /*
-         * Store every credited author.
-         */
+        status,
         authors,
 
-        /*
-         * Keep the first author in
-         * the old column temporarily
-         * for older site code.
-         */
+        // Keep this for older parts of the site.
         author_name:
           authors[0],
 
@@ -420,10 +408,7 @@ export async function createArticle(
       });
 
   if (insertError) {
-    /*
-     * Don't leave unused cover images
-     * behind when the insert fails.
-     */
+    // Remove the uploaded image if saving fails.
     await supabase.storage
       .from(
         ARTICLE_IMAGE_BUCKET,
@@ -432,24 +417,23 @@ export async function createArticle(
         coverPath,
       ]);
 
+    console.error(
+      "CREATE ARTICLE INSERT ERROR:",
+      insertError,
+    );
+
     redirectWithError(
-      insertError.message,
+      "Unable to save the article. Please try again.",
       status,
     );
   }
 
+  // Refresh pages that use article data.
   revalidatePath("/admin");
   revalidatePath(
     "/admin/articles",
   );
   revalidatePath("/");
 
-  /*
-   * Reaching this redirect means the
-   * article was successfully inserted.
-   *
-   * The Articles layout will consume
-   * the pending success notification.
-   */
   redirect("/admin/articles");
 }

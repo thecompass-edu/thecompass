@@ -1,65 +1,111 @@
-import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  analyticsJson,
+  getCountryCode,
+  hasOnlyKeys,
+  isUuid,
+  protectAnalyticsRequest,
+  readAnalyticsJson,
+} from "@/lib/security/analyticsRequest";
 
-import { createClient } from "@/lib/supabase/server";
+export async function POST(
+  request: Request,
+) {
+  const blocked =
+    protectAnalyticsRequest(
+      request,
+    );
 
-type VisitRequestBody = {
-  visitorId?: string;
-  sessionId?: string;
-};
+  if (blocked) {
+    return blocked;
+  }
 
-export async function POST(request: Request) {
-  try {
-    const body = (await request.json()) as VisitRequestBody;
+  const bodyResult =
+    await readAnalyticsJson(
+      request,
+    );
 
-    const visitorId = body.visitorId;
-    const sessionId = body.sessionId;
+  if (!bodyResult.ok) {
+    return bodyResult.response;
+  }
 
-    if (!visitorId || !sessionId) {
-      return NextResponse.json(
-        { error: "Missing visitor or session ID." },
-        { status: 400 },
-      );
-    }
+  const body = bodyResult.data;
 
-    /*
-     * Vercel provides this header in production.
-     * During localhost development it may be unavailable.
-     */
-    const countryCode =
-      request.headers.get("x-vercel-ip-country") ?? "Unknown";
-
-    const supabase = await createClient();
-
-    const { error } = await supabase.from("site_visits").insert({
-      visitor_id: visitorId,
-      session_id: sessionId,
-      country_code: countryCode,
-    });
-
-    /*
-     * 23505 = unique constraint violation.
-     *
-     * This simply means this session was already recorded,
-     * so we don't treat it as an application error.
-     */
-    if (error && error.code !== "23505") {
-      console.error("SITE VISIT TRACKING ERROR:", error);
-
-      return NextResponse.json(
-        { error: "Unable to record visit." },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-    });
-  } catch (error) {
-    console.error("SITE VISIT API ERROR:", error);
-
-    return NextResponse.json(
-      { error: "Unable to record visit." },
-      { status: 500 },
+  if (
+    !hasOnlyKeys(body, [
+      "visitorId",
+      "sessionId",
+    ])
+  ) {
+    return analyticsJson(
+      {
+        error:
+          "Invalid request body.",
+      },
+      400,
     );
   }
+
+  const {
+    visitorId,
+    sessionId,
+  } = body;
+
+  if (
+    !isUuid(visitorId) ||
+    !isUuid(sessionId)
+  ) {
+    return analyticsJson(
+      {
+        error:
+          "Invalid analytics identifiers.",
+      },
+      400,
+    );
+  }
+
+  const supabase =
+    createAdminClient();
+
+  const { error } =
+    await supabase
+      .from("site_visits")
+      .insert({
+        visitor_id:
+          visitorId,
+        session_id:
+          sessionId,
+        country_code:
+          getCountryCode(
+            request,
+          ),
+      });
+
+  if (error) {
+    // This session was already counted.
+    if (
+      error.code === "23505"
+    ) {
+      return analyticsJson({
+        ok: true,
+      });
+    }
+
+    console.error(
+      "SITE VISIT INSERT ERROR:",
+      error,
+    );
+
+    return analyticsJson(
+      {
+        error:
+          "Unable to record visit.",
+      },
+      500,
+    );
+  }
+
+  return analyticsJson({
+    ok: true,
+  });
 }
