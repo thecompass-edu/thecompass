@@ -28,15 +28,18 @@ export default function Navbar() {
     <header
       className={`
         sticky top-0 z-50 w-full
-        transition-[padding] duration-700
+        transition-[padding,background-color]
+        duration-700
         ease-[cubic-bezier(0.22,1,0.36,1)]
-        ${isScrolled ? "pt-5" : "pt-3"}
+
+        ${isScrolled ? "bg-transparent pt-5" : "bg-[#F8F5EC] pt-3"}
       `}
     >
       {/* Navbar Shape */}
       <nav
         className={`
           mx-auto w-full
+
           transition-[max-width,border-radius,background-color,border-color,box-shadow,backdrop-filter]
           duration-700
           ease-[cubic-bezier(0.22,1,0.36,1)]
@@ -44,10 +47,10 @@ export default function Navbar() {
           ${
             isScrolled
               ? `
-                max-w-[1175px]
+                max-w-293.75
                 rounded-[36px]
                 border border-white/25
-                bg-[#F3F0E8]/65
+                bg-[#F8F5EC]/65
                 shadow-[0_8px_30px_rgba(39,67,13,0.08)]
                 backdrop-blur-md
               `
@@ -55,7 +58,7 @@ export default function Navbar() {
                 max-w-full
                 rounded-none
                 border border-transparent
-                bg-transparent
+                bg-[#F8F5EC]
                 shadow-none
                 backdrop-blur-none
               `
@@ -66,8 +69,8 @@ export default function Navbar() {
         <div
           className="
             mx-auto flex
-            min-h-[72px]
-            w-full max-w-[1175px]
+            min-h-18
+            w-full max-w-293.75
             items-center justify-between
             px-5 py-2.5
             sm:px-6
@@ -77,7 +80,7 @@ export default function Navbar() {
           {/* Logo / Brand */}
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5 text-[#27430D]"
+            className="group flex shrink-0 items-center gap-2.5 text-[#27430D]"
           >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm">
               <Image
@@ -86,7 +89,15 @@ export default function Navbar() {
                 width={38}
                 height={38}
                 priority
-                className="h-[38px] w-[38px] object-contain"
+                className="
+                  h-9.5
+                  w-9.5
+                  object-contain
+                  transition-transform
+                  duration-700
+                  ease-[cubic-bezier(0.22,1,0.36,1)]
+                  group-hover:rotate-360
+                "
               />
             </div>
 
@@ -138,7 +149,9 @@ export default function Navbar() {
                 text-sm font-semibold
                 text-[#27430D]
                 backdrop-blur-sm
-                transition-colors duration-300
+                transition-colors
+                duration-300
+
                 hover:bg-[#27430D]
                 hover:text-white
               "

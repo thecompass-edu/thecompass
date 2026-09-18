@@ -78,7 +78,7 @@ export default async function RecentArticles() {
     .slice(0, 2);
 
   return (
-    <section className="border-t border-[#27430D]/10 bg-[#FEFEFE]">
+    <section className="border-t border-[#27430D]/10 bg-[#F8F5EC]">
       <div className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
           {/* LEFT SIDE */}
@@ -104,7 +104,6 @@ export default async function RecentArticles() {
                 className="hidden items-center gap-3 text-sm font-semibold text-[#27430D] transition-opacity hover:opacity-70 sm:flex"
               >
                 View all articles
-
                 <span aria-hidden="true">›</span>
               </Link>
             </div>
@@ -139,7 +138,7 @@ export default async function RecentArticles() {
                               sizes="(max-width: 768px) 100vw, 35vw"
                             />
                           ) : (
-                            <div className="flex h-full min-h-60 w-full items-center justify-center bg-[#F6F1EA] md:min-h-76.25">
+                            <div className="flex h-full min-h-60 w-full items-center justify-center bg-[#F8F5EC] md:min-h-76.25">
                               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687704]/50">
                                 The Compass
                               </p>
@@ -181,7 +180,7 @@ export default async function RecentArticles() {
                           </div>
 
                           {/* Read Article - hover only */}
-                          <div className="mt-5 min-h-[24px]">
+                          <div className="mt-5 min-h-6">
                             <Link
                               href={`/articles/${article.slug}`}
                               className="
@@ -195,15 +194,12 @@ export default async function RecentArticles() {
                                 transition-all
                                 duration-300
                                 ease-out
-
                                 group-hover:translate-y-0
                                 group-hover:opacity-100
-
                                 hover:opacity-70
                               "
                             >
                               Read Article
-
                               <span aria-hidden="true">›</span>
                             </Link>
                           </div>
@@ -227,7 +223,6 @@ export default async function RecentArticles() {
               className="mt-7 flex items-center justify-center gap-3 rounded-xl border border-[#27430D]/10 bg-[#FEFEFE] py-4 text-sm font-semibold text-[#27430D] sm:hidden"
             >
               View all articles
-
               <span aria-hidden="true">›</span>
             </Link>
           </div>
@@ -237,7 +232,7 @@ export default async function RecentArticles() {
             <div className="rounded-2xl border border-[#27430D]/10 bg-[#FEFEFE]/70 p-6">
               {/* Fun Fact Header */}
               <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#687704]/30 bg-[#F6F1EA]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#687704]/30 bg-[#F8F5EC]">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -259,7 +254,7 @@ export default async function RecentArticles() {
               </div>
 
               {/* Fun Fact Placeholder */}
-              <div className="flex aspect-4/3 items-center justify-center overflow-hidden rounded-xl bg-[#F6F1EA]">
+              <div className="flex aspect-4/3 items-center justify-center overflow-hidden rounded-xl bg-[#F8F5EC]">
                 <div className="text-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687704]">
                     Fun Fact Image
@@ -288,10 +283,9 @@ export default async function RecentArticles() {
 
               <Link
                 href="#"
-                className="mt-7 flex items-center justify-between rounded-xl border border-[#687704]/30 bg-[#F6F1EA] px-5 py-4 font-semibold text-[#27430D] transition-colors hover:bg-[#687704]/10"
+                className="mt-7 flex items-center justify-between rounded-xl border border-[#687704]/30 bg-[#F8F5EC] px-5 py-4 font-semibold text-[#27430D] transition-colors hover:bg-[#687704]/10"
               >
                 View Story
-
                 <span aria-hidden="true">→</span>
               </Link>
             </div>
