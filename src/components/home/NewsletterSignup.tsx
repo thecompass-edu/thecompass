@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import {
+  useActionState,
+} from "react";
 
 import {
   subscribeToNewsletter,
@@ -13,7 +15,11 @@ const initialState: SubscribeState = {
 };
 
 export default function NewsletterSignup() {
-  const [state, formAction, isPending] = useActionState(
+  const [
+    state,
+    formAction,
+    isPending,
+  ] = useActionState(
     subscribeToNewsletter,
     initialState,
   );
@@ -23,6 +29,7 @@ export default function NewsletterSignup() {
       <form
         action={formAction}
         className="
+          relative
           flex
           w-full
           overflow-hidden
@@ -32,13 +39,15 @@ export default function NewsletterSignup() {
           bg-white/20
           transition-all
           duration-300
-
           focus-within:border-[#27430D]
           focus-within:ring-4
           focus-within:ring-[#27430D]/5
         "
       >
-        <label htmlFor="newsletter-email" className="sr-only">
+        <label
+          htmlFor="newsletter-email"
+          className="sr-only"
+        >
           Email address
         </label>
 
@@ -47,6 +56,7 @@ export default function NewsletterSignup() {
           name="email"
           type="email"
           required
+          maxLength={254}
           autoComplete="email"
           placeholder="Enter your email address"
           className="
@@ -65,6 +75,25 @@ export default function NewsletterSignup() {
           "
         />
 
+        <div
+          className="sr-only"
+          aria-hidden="true"
+        >
+          <label
+            htmlFor="newsletter-website"
+          >
+            Website
+          </label>
+
+          <input
+            id="newsletter-website"
+            name="website_url"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
+
         <button
           type="submit"
           disabled={isPending}
@@ -78,26 +107,36 @@ export default function NewsletterSignup() {
             text-white
             transition-colors
             duration-300
-
             hover:bg-[#687704]
-
             disabled:cursor-not-allowed
             disabled:opacity-60
-
             sm:px-8
             sm:text-[17px]
           "
         >
-          {isPending ? "Subscribing..." : "Subscribe"}
+          {isPending
+            ? "Subscribing..."
+            : "Subscribe"}
         </button>
       </form>
 
-      {/* Success / Error Message */}
       {state.message && (
         <p
-          aria-live="polite"
+          role={
+            state.status ===
+            "error"
+              ? "alert"
+              : "status"
+          }
+          aria-live={
+            state.status ===
+            "error"
+              ? "assertive"
+              : "polite"
+          }
           className={`mt-2 font-essays text-sm ${
-            state.status === "success"
+            state.status ===
+            "success"
               ? "text-[#687704]"
               : "text-red-700"
           }`}
@@ -106,7 +145,6 @@ export default function NewsletterSignup() {
         </p>
       )}
 
-      {/* Description */}
       <p className="mt-2 font-essays text-[13px] leading-5 text-[#7B886C]/70">
         Get new articles and financial literacy insights delivered to your
         inbox.

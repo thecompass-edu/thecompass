@@ -112,7 +112,7 @@ export default function CoverImageUpload({
       {preview ? (
         <div className="overflow-hidden rounded-xl border border-[#27430D]/15 bg-white">
           {/* Show the current or newly selected cover image. */}
-          <div className="relative aspect-[16/9] w-full bg-white">
+          <div className="relative aspect-video w-full bg-white">
             <Image
               src={preview}
               alt="Article cover preview"
@@ -147,7 +147,7 @@ export default function CoverImageUpload({
          */
         <label
           htmlFor="cover_image"
-          className="flex min-h-[250px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#27430D]/20 bg-white px-6 py-8 text-center transition hover:border-[#687704]"
+          className="flex min-h-62.5 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#27430D]/20 bg-white px-6 py-8 text-center transition hover:border-[#687704]"
         >
           <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#27430D]/10 bg-white text-[#687704]">
             <svg

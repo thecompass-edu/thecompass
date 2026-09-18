@@ -1,97 +1,109 @@
 "use client";
 
-import { useEffect } from "react";
+import {
+  useEffect,
+} from "react";
+
+const VISITOR_ID_KEY =
+  "compass_visitor_id";
+
+const SESSION_ID_KEY =
+  "compass_session_id";
 
 type ArticleViewTrackerProps = {
   articleId: string;
 };
 
-const VISITOR_STORAGE_KEY = "compass_visitor_id";
-const SESSION_STORAGE_KEY = "compass_session_id";
+function getOrCreateId(
+  storage: Storage,
+  key: string,
+) {
+  const existing =
+    storage.getItem(key);
 
-function getVisitorId() {
-  let visitorId = localStorage.getItem(VISITOR_STORAGE_KEY);
-
-  if (!visitorId) {
-    visitorId = crypto.randomUUID();
-
-    localStorage.setItem(
-      VISITOR_STORAGE_KEY,
-      visitorId,
-    );
+  if (existing) {
+    return existing;
   }
 
-  return visitorId;
-}
+  const id =
+    crypto.randomUUID();
 
-function getSessionId() {
-  let sessionId = sessionStorage.getItem(
-    SESSION_STORAGE_KEY,
+  storage.setItem(
+    key,
+    id,
   );
 
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY,
-      sessionId,
-    );
-  }
-
-  return sessionId;
+  return id;
 }
 
 export default function ArticleViewTracker({
   articleId,
 }: ArticleViewTrackerProps) {
   useEffect(() => {
-    const articleRecordedKey =
-      `compass_article_view_${articleId}`;
+    try {
+      const viewKey =
+        `compass_article_view_${articleId}`;
 
-    const alreadyRecorded =
-      sessionStorage.getItem(articleRecordedKey);
-
-    if (alreadyRecorded) {
-      return;
-    }
-
-    const visitorId = getVisitorId();
-    const sessionId = getSessionId();
-
-    async function recordArticleView() {
-      try {
-        const response = await fetch(
-          "/api/analytics/article-view",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json",
-            },
-
-            body: JSON.stringify({
-              articleId,
-              visitorId,
-              sessionId,
-            }),
-          },
-        );
-
-        if (response.ok) {
-          sessionStorage.setItem(
-            articleRecordedKey,
-            "true",
-          );
-        }
-      } catch (error) {
-        console.error(
-          "ARTICLE VIEW TRACKING ERROR:",
-          error,
-        );
+      if (
+        sessionStorage.getItem(
+          viewKey,
+        ) === "1"
+      ) {
+        return;
       }
-    }
 
-    void recordArticleView();
+      const visitorId =
+        getOrCreateId(
+          localStorage,
+          VISITOR_ID_KEY,
+        );
+
+      const sessionId =
+        getOrCreateId(
+          sessionStorage,
+          SESSION_ID_KEY,
+        );
+
+      const controller =
+        new AbortController();
+
+      void fetch(
+        "/api/analytics/article-view",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            articleId,
+            visitorId,
+            sessionId,
+          }),
+          cache: "no-store",
+          keepalive: true,
+          signal:
+            controller.signal,
+        },
+      )
+        .then((response) => {
+          if (response.ok) {
+            sessionStorage.setItem(
+              viewKey,
+              "1",
+            );
+          }
+        })
+        .catch(() => {
+          // Analytics should never interrupt the article.
+        });
+
+      return () => {
+        controller.abort();
+      };
+    } catch {
+      // Storage may be unavailable in some browsers.
+    }
   }, [articleId]);
 
   return null;
