@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import ArticleViewTracker from "@/components/analytics/ArticleViewTracker";
 import Navbar from "@/components/home/Navbar";
+
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +95,9 @@ export default async function ArticlePage({
 
   return (
     <main className="min-h-screen bg-white text-[#27430D]">
+      {/* Record article view */}
+      <ArticleViewTracker articleId={article.id} />
+
       <Navbar />
 
       <article className="mx-auto w-full max-w-[1120px] px-5 pb-16 pt-12 sm:px-8 lg:px-10 lg:pb-20 lg:pt-16">
@@ -113,7 +118,10 @@ export default async function ArticlePage({
 
             {article.category && (
               <>
-                <li aria-hidden="true" className="text-[#523A23]/30">
+                <li
+                  aria-hidden="true"
+                  className="text-[#523A23]/30"
+                >
                   /
                 </li>
 
@@ -123,7 +131,10 @@ export default async function ArticlePage({
               </>
             )}
 
-            <li aria-hidden="true" className="text-[#523A23]/30">
+            <li
+              aria-hidden="true"
+              className="text-[#523A23]/30"
+            >
               /
             </li>
 
@@ -241,7 +252,6 @@ export default async function ArticlePage({
             [&_a]:underline-offset-4
             [&_a]:transition-colors
             [&_a]:duration-200
-
             hover:[&_a]:text-[#27430D]
 
             [&_img]:mx-auto
