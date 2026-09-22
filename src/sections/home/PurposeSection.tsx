@@ -9,6 +9,8 @@ import purposeGuide from "@/assets/Purpose/purpose-guide.png";
 import purposePaper from "@/assets/Purpose/purpose-paper.png";
 import purposeTitle from "@/assets/Purpose/purpose-title.png";
 
+import RevealOnScroll from "@/components/home/RevealOnScroll";
+
 const PURPOSE_TABS = ["mission", "vision", "values"] as const;
 
 type PurposeTab = (typeof PURPOSE_TABS)[number];
@@ -73,10 +75,7 @@ function PurposeTabs({
   textClassName,
 }: TabButtonProps) {
   return (
-    <div
-      className={containerClassName}
-      aria-label="Purpose sections"
-    >
+    <div className={containerClassName} aria-label="Purpose sections">
       {PURPOSE_TABS.map((tab) => {
         const isActive = activeTab === tab;
 
@@ -92,9 +91,7 @@ function PurposeTabs({
                 : "bg-[#718F14] text-white hover:bg-[#5F7B0E]"
             }`}
           >
-            <span className={textClassName}>
-              {tab}
-            </span>
+            <span className={textClassName}>{tab}</span>
           </button>
         );
       })}
@@ -133,9 +130,7 @@ function PurposeContentBlock({
       className="purpose-content-animation"
     >
       <div className="inline-flex flex-col items-start">
-        <h2 className={titleClassName}>
-          {content.title}
-        </h2>
+        <h2 className={titleClassName}>{content.title}</h2>
 
         <span
           className={
@@ -146,9 +141,7 @@ function PurposeContentBlock({
         />
       </div>
 
-      <p className={descriptionClassName}>
-        {content.text}
-      </p>
+      <p className={descriptionClassName}>{content.text}</p>
     </div>
   );
 }
@@ -285,16 +278,48 @@ function MobilePurposeLayout({
 }: LayoutProps) {
   return (
     <div className="block min-h-screen px-4 py-12 md:hidden">
-      <div className="relative z-30 flex justify-center">
+      {/* PURPOSE TITLE */}
+      <RevealOnScroll
+        className="
+          relative
+          z-30
+          flex
+          translate-y-8
+          justify-center
+          opacity-0
+          transition-all
+          duration-700
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+          data-[visible=true]:translate-y-0
+          data-[visible=true]:opacity-100
+        "
+      >
         <Image
           src={purposeTitle}
           alt="Our Purpose"
           className="h-auto w-55"
           priority
         />
-      </div>
+      </RevealOnScroll>
 
-      <div className="relative mx-auto mt-10 w-full overflow-hidden">
+      {/* PURPOSE FOLDER */}
+      <RevealOnScroll
+        className="
+          relative
+          mx-auto
+          mt-10
+          w-full
+          translate-y-12
+          overflow-hidden
+          opacity-0
+          transition-all
+          delay-150
+          duration-700
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+          data-[visible=true]:translate-y-0
+          data-[visible=true]:opacity-100
+        "
+      >
         <Image
           src={purposeFolder}
           alt="Open folder containing The Compass purpose"
@@ -328,7 +353,7 @@ function MobilePurposeLayout({
         />
 
         <PurposeGuide className="absolute bottom-[7%] left-[4%] z-40 w-[50%]" />
-      </div>
+      </RevealOnScroll>
 
       <TornPaperEdge />
     </div>
@@ -344,7 +369,22 @@ function ResponsivePurposeLayout({
 
   return (
     <div className="hidden min-h-screen px-6 py-12 md:block lg:py-16">
-      <div className="relative z-30 flex justify-center">
+      {/* PURPOSE TITLE */}
+      <RevealOnScroll
+        className="
+          relative
+          z-30
+          flex
+          translate-y-8
+          justify-center
+          opacity-0
+          transition-all
+          duration-700
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+          data-[visible=true]:translate-y-0
+          data-[visible=true]:opacity-100
+        "
+      >
         <div className="transition-all duration-500 ease-out hover:-rotate-2 hover:scale-[1.02]">
           <Image
             src={purposeTitle}
@@ -353,9 +393,29 @@ function ResponsivePurposeLayout({
             priority
           />
         </div>
-      </div>
+      </RevealOnScroll>
 
-      <div className="relative mx-auto -mt-4 w-[94%] max-w-212.5 lg:-mt-10 lg:w-full lg:max-w-275">
+      {/* PURPOSE FOLDER */}
+      <RevealOnScroll
+        className="
+          relative
+          mx-auto
+          -mt-4
+          w-[94%]
+          max-w-212.5
+          translate-y-14
+          opacity-0
+          transition-all
+          delay-150
+          duration-800
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+          data-[visible=true]:translate-y-0
+          data-[visible=true]:opacity-100
+          lg:-mt-10
+          lg:w-full
+          lg:max-w-275
+        "
+      >
         <Image
           src={purposeFolder}
           alt="Open folder containing The Compass purpose"
@@ -401,7 +461,7 @@ function ResponsivePurposeLayout({
           className="absolute bottom-[9%] left-[9%] z-30 w-[27%] lg:bottom-[10%] lg:left-[10%] lg:w-[30%]"
           interactive
         />
-      </div>
+      </RevealOnScroll>
 
       <TornPaperEdge />
     </div>
@@ -409,11 +469,15 @@ function ResponsivePurposeLayout({
 }
 
 export default function PurposeSection() {
-  const [activeTab, setActiveTab] = useState<PurposeTab>("mission");
-  const [animationKey, setAnimationKey] = useState(0);
+  const [activeTab, setActiveTab] =
+    useState<PurposeTab>("mission");
+
+  const [animationKey, setAnimationKey] =
+    useState(0);
 
   const handleTabChange = (tab: PurposeTab) => {
     setActiveTab(tab);
+
     setAnimationKey((current) => current + 1);
   };
 
