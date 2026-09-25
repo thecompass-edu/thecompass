@@ -15,11 +15,14 @@ import {
 const ARTICLE_CREATED_STORAGE_KEY =
   "compass-article-created";
 
-const ARTICLE_UPDATED_STORAGE_KEY =
-  "compass-article-updated";
-
 const ARTICLE_DELETED_STORAGE_KEY =
   "compass-article-deleted";
+
+const FUN_FACT_SAVED_STORAGE_KEY =
+  "compass-fun-fact-saved";
+
+const FUN_FACT_DELETED_STORAGE_KEY =
+  "compass-fun-fact-deleted";
 
 const TOAST_DURATION = 4500;
 const MAX_NOTIFICATION_AGE =
@@ -41,7 +44,7 @@ type ToastPayload = Omit<
   "id"
 >;
 
-type ArticleCreatedNotification = {
+type SavedNotification = {
   title: string;
   status:
     | "draft"
@@ -49,17 +52,7 @@ type ArticleCreatedNotification = {
   timestamp: number;
 };
 
-type ArticleUpdatedNotification = {
-  title: string;
-  action:
-    | "draft"
-    | "published"
-    | "updated"
-    | "unpublished";
-  timestamp: number;
-};
-
-type ArticleDeletedNotification = {
+type DeletedNotification = {
   title: string;
   timestamp: number;
 };
@@ -70,7 +63,7 @@ type AdminToastEventDetail = {
   message: string;
 };
 
-function isRecent(
+function isRecentNotification(
   timestamp: number,
 ) {
   return (
@@ -79,7 +72,11 @@ function isRecent(
   );
 }
 
-function consumeCreatedNotification():
+/* =====================================================
+   ARTICLE NOTIFICATIONS
+===================================================== */
+
+function consumeArticleSavedNotification():
   ToastPayload | null {
   const stored =
     sessionStorage.getItem(
@@ -98,10 +95,10 @@ function consumeCreatedNotification():
     const notification =
       JSON.parse(
         stored,
-      ) as ArticleCreatedNotification;
+      ) as SavedNotification;
 
     if (
-      !isRecent(
+      !isRecentNotification(
         notification.timestamp,
       )
     ) {
@@ -130,83 +127,7 @@ function consumeCreatedNotification():
   }
 }
 
-function consumeUpdatedNotification():
-  ToastPayload | null {
-  const stored =
-    sessionStorage.getItem(
-      ARTICLE_UPDATED_STORAGE_KEY,
-    );
-
-  if (!stored) {
-    return null;
-  }
-
-  sessionStorage.removeItem(
-    ARTICLE_UPDATED_STORAGE_KEY,
-  );
-
-  try {
-    const notification =
-      JSON.parse(
-        stored,
-      ) as ArticleUpdatedNotification;
-
-    if (
-      !isRecent(
-        notification.timestamp,
-      )
-    ) {
-      return null;
-    }
-
-    if (
-      notification.action ===
-      "published"
-    ) {
-      return {
-        type: "success",
-        title:
-          "Article published",
-        message: `“${notification.title}” is now live on the website.`,
-      };
-    }
-
-    if (
-      notification.action ===
-      "unpublished"
-    ) {
-      return {
-        type: "success",
-        title:
-          "Article moved to drafts",
-        message: `“${notification.title}” is no longer visible on the public website.`,
-      };
-    }
-
-    if (
-      notification.action ===
-      "draft"
-    ) {
-      return {
-        type: "success",
-        title:
-          "Draft updated",
-        message: `Changes to “${notification.title}” were saved.`,
-      };
-    }
-
-    return {
-      type: "success",
-      title:
-        "Article updated",
-      message: `Changes to “${notification.title}” were saved successfully.`,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function consumeDeletedNotification():
+function consumeArticleDeletedNotification():
   ToastPayload | null {
   const stored =
     sessionStorage.getItem(
@@ -225,10 +146,10 @@ function consumeDeletedNotification():
     const notification =
       JSON.parse(
         stored,
-      ) as ArticleDeletedNotification;
+      ) as DeletedNotification;
 
     if (
-      !isRecent(
+      !isRecentNotification(
         notification.timestamp,
       )
     ) {
@@ -239,6 +160,101 @@ function consumeDeletedNotification():
       type: "success",
       title:
         "Article deleted",
+      message: `“${notification.title}” was deleted successfully.`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* =====================================================
+   FUN FACT NOTIFICATIONS
+===================================================== */
+
+function consumeFunFactSavedNotification():
+  ToastPayload | null {
+  const stored =
+    sessionStorage.getItem(
+      FUN_FACT_SAVED_STORAGE_KEY,
+    );
+
+  if (!stored) {
+    return null;
+  }
+
+  sessionStorage.removeItem(
+    FUN_FACT_SAVED_STORAGE_KEY,
+  );
+
+  try {
+    const notification =
+      JSON.parse(
+        stored,
+      ) as SavedNotification;
+
+    if (
+      !isRecentNotification(
+        notification.timestamp,
+      )
+    ) {
+      return null;
+    }
+
+    if (
+      notification.status ===
+      "published"
+    ) {
+      return {
+        type: "success",
+        title:
+          "Fun Fact published",
+        message: `“${notification.title}” was published successfully.`,
+      };
+    }
+
+    return {
+      type: "success",
+      title: "Draft saved",
+      message: `“${notification.title}” was saved as a draft.`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function consumeFunFactDeletedNotification():
+  ToastPayload | null {
+  const stored =
+    sessionStorage.getItem(
+      FUN_FACT_DELETED_STORAGE_KEY,
+    );
+
+  if (!stored) {
+    return null;
+  }
+
+  sessionStorage.removeItem(
+    FUN_FACT_DELETED_STORAGE_KEY,
+  );
+
+  try {
+    const notification =
+      JSON.parse(
+        stored,
+      ) as DeletedNotification;
+
+    if (
+      !isRecentNotification(
+        notification.timestamp,
+      )
+    ) {
+      return null;
+    }
+
+    return {
+      type: "success",
+      title:
+        "Fun Fact deleted",
       message: `“${notification.title}” was deleted successfully.`,
     };
   } catch {
@@ -344,7 +360,9 @@ export default function AdminToastHost() {
       [],
     );
 
-  // Show errors returned by server actions.
+  /*
+   * Server-side error redirects.
+   */
   useEffect(() => {
     const error =
       searchParams.get(
@@ -355,19 +373,61 @@ export default function AdminToastHost() {
       return;
     }
 
-    const attempt =
+    const attemptFromQuery =
       searchParams.get(
         "attempt",
       );
 
-    // Remove pending success messages when an action fails.
-    sessionStorage.removeItem(
-      ARTICLE_CREATED_STORAGE_KEY,
-    );
+    const isFunFactRoute =
+      pathname.startsWith(
+        "/admin/fun-facts",
+      );
+
+    const successKey =
+      isFunFactRoute
+        ? FUN_FACT_SAVED_STORAGE_KEY
+        : ARTICLE_CREATED_STORAGE_KEY;
+
+    /*
+     * Recover the attempted status before
+     * clearing the pending success toast.
+     */
+    let storedAttempt:
+      | "draft"
+      | "published"
+      | null = null;
+
+    const pending =
+      sessionStorage.getItem(
+        successKey,
+      );
+
+    if (pending) {
+      try {
+        const parsed =
+          JSON.parse(
+            pending,
+          ) as SavedNotification;
+
+        storedAttempt =
+          parsed.status;
+      } catch {
+        storedAttempt =
+          null;
+      }
+    }
 
     sessionStorage.removeItem(
-      ARTICLE_UPDATED_STORAGE_KEY,
+      successKey,
     );
+
+    const attempt =
+      attemptFromQuery ===
+        "published" ||
+      attemptFromQuery ===
+        "draft"
+        ? attemptFromQuery
+        : storedAttempt;
 
     let title =
       "Something went wrong";
@@ -375,8 +435,9 @@ export default function AdminToastHost() {
     if (
       attempt === "published"
     ) {
-      title =
-        "Article was not published";
+      title = isFunFactRoute
+        ? "Fun Fact was not published"
+        : "Article was not published";
     }
 
     if (
@@ -435,39 +496,30 @@ export default function AdminToastHost() {
     showToast,
   ]);
 
-  // Show pending notifications after navigation.
+  /*
+   * Consume notifications after
+   * redirects / route changes.
+   */
   useEffect(() => {
     const timeout =
       window.setTimeout(
         () => {
-          const createdToast =
-            consumeCreatedNotification();
+          const notifications =
+            [
+              consumeFunFactSavedNotification(),
+              consumeFunFactDeletedNotification(),
+              consumeArticleSavedNotification(),
+              consumeArticleDeletedNotification(),
+            ];
 
-          if (createdToast) {
-            showToast(
-              createdToast,
+          const nextToast =
+            notifications.find(
+              Boolean,
             );
 
-            return;
-          }
-
-          const updatedToast =
-            consumeUpdatedNotification();
-
-          if (updatedToast) {
+          if (nextToast) {
             showToast(
-              updatedToast,
-            );
-
-            return;
-          }
-
-          const deletedToast =
-            consumeDeletedNotification();
-
-          if (deletedToast) {
-            showToast(
-              deletedToast,
+              nextToast,
             );
           }
         },
@@ -484,22 +536,14 @@ export default function AdminToastHost() {
     showToast,
   ]);
 
-  // Listen for admin actions that do not change routes.
+  /*
+   * Events for operations that happen
+   * without navigation, such as delete.
+   */
   useEffect(() => {
-    function handleArticleCreated() {
+    function handleArticleSaved() {
       const nextToast =
-        consumeCreatedNotification();
-
-      if (nextToast) {
-        showToast(
-          nextToast,
-        );
-      }
-    }
-
-    function handleArticleUpdated() {
-      const nextToast =
-        consumeUpdatedNotification();
+        consumeArticleSavedNotification();
 
       if (nextToast) {
         showToast(
@@ -510,7 +554,29 @@ export default function AdminToastHost() {
 
     function handleArticleDeleted() {
       const nextToast =
-        consumeDeletedNotification();
+        consumeArticleDeletedNotification();
+
+      if (nextToast) {
+        showToast(
+          nextToast,
+        );
+      }
+    }
+
+    function handleFunFactSaved() {
+      const nextToast =
+        consumeFunFactSavedNotification();
+
+      if (nextToast) {
+        showToast(
+          nextToast,
+        );
+      }
+    }
+
+    function handleFunFactDeleted() {
+      const nextToast =
+        consumeFunFactDeletedNotification();
 
       if (nextToast) {
         showToast(
@@ -548,17 +614,22 @@ export default function AdminToastHost() {
 
     window.addEventListener(
       "article-created",
-      handleArticleCreated,
-    );
-
-    window.addEventListener(
-      "article-updated",
-      handleArticleUpdated,
+      handleArticleSaved,
     );
 
     window.addEventListener(
       "article-deleted",
       handleArticleDeleted,
+    );
+
+    window.addEventListener(
+      "fun-fact-saved",
+      handleFunFactSaved,
+    );
+
+    window.addEventListener(
+      "fun-fact-deleted",
+      handleFunFactDeleted,
     );
 
     window.addEventListener(
@@ -569,17 +640,22 @@ export default function AdminToastHost() {
     return () => {
       window.removeEventListener(
         "article-created",
-        handleArticleCreated,
-      );
-
-      window.removeEventListener(
-        "article-updated",
-        handleArticleUpdated,
+        handleArticleSaved,
       );
 
       window.removeEventListener(
         "article-deleted",
         handleArticleDeleted,
+      );
+
+      window.removeEventListener(
+        "fun-fact-saved",
+        handleFunFactSaved,
+      );
+
+      window.removeEventListener(
+        "fun-fact-deleted",
+        handleFunFactDeleted,
       );
 
       window.removeEventListener(
@@ -589,6 +665,9 @@ export default function AdminToastHost() {
     };
   }, [showToast]);
 
+  /*
+   * Auto dismiss.
+   */
   useEffect(() => {
     if (!toast) {
       return;
@@ -630,7 +709,7 @@ export default function AdminToastHost() {
           : "polite"
       }
       className={`
-        fixed bottom-5 right-5 z-130
+        fixed bottom-5 right-5 z-11000
         w-[calc(100%-2.5rem)]
         max-w-105
         overflow-hidden

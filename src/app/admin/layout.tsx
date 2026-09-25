@@ -1,12 +1,8 @@
 import { redirect } from "next/navigation";
-
-import {
-  Plus_Jakarta_Sans,
-} from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminToastHost from "@/components/admin/AdminToastHost";
-
 import { createClient } from "@/lib/supabase/server";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -24,29 +20,19 @@ export default async function AdminLayout({
 }: AdminLayoutProps) {
   const supabase = await createClient();
 
-  /* -------------------------------------------------
-     CHECK AUTHENTICATION
-  ------------------------------------------------- */
-
+  // Check authentication
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
-  /*
-   * Not logged in:
-   * send the visitor to the login page.
-   */
   if (userError || !user) {
     redirect(
       "/login?redirectTo=/admin",
     );
   }
 
-  /* -------------------------------------------------
-     CHECK ADMIN AUTHORIZATION
-  ------------------------------------------------- */
-
+  // Check admin access
   const {
     data: adminAccess,
     error: adminAccessError,
@@ -56,12 +42,6 @@ export default async function AdminLayout({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  /*
-   * Fail closed.
-   *
-   * If Supabase cannot verify admin access,
-   * do not allow access to the admin panel.
-   */
   if (adminAccessError) {
     console.error(
       "ADMIN AUTHORIZATION ERROR:",
@@ -71,17 +51,9 @@ export default async function AdminLayout({
     redirect("/");
   }
 
-  /*
-   * User is authenticated,
-   * but their UID is not in admin_users.
-   */
   if (!adminAccess) {
     redirect("/");
   }
-
-  /* -------------------------------------------------
-     AUTHORIZED ADMIN
-  ------------------------------------------------- */
 
   return (
     <div
@@ -89,15 +61,10 @@ export default async function AdminLayout({
     >
       <AdminSidebar />
 
-      {/* Leave room for the fixed sidebar on desktop. */}
       <main className="min-h-screen lg:ml-68">
         {children}
       </main>
 
-      {/*
-       * One notification renderer for the
-       * entire admin application.
-       */}
       <AdminToastHost />
     </div>
   );

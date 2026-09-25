@@ -80,7 +80,7 @@ export default async function RecentArticles() {
     .slice(0, 2);
 
   return (
-    <section className="overflow-hidden border-t border-[#27430D]/10 bg-[#F8F5EC]">
+    <section className="border-t border-[#27430D]/10 bg-[#F8F5EC]">
       <div className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
           {/* LEFT SIDE */}

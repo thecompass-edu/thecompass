@@ -1,7 +1,6 @@
-import DashboardStats from "@/sections/admin/DashboardStats";
-import TopPerformingArticles from "@/sections/admin/TopPerformingArticles";
-import VisitorCountries from "@/sections/admin/VisitorCountries";
+import Link from "next/link";
 
+import DashboardViewsOverview from "@/components/admin/DashboardViewsOverview";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic =
@@ -18,7 +17,10 @@ type Article = {
 
 type SiteVisit = {
   id: string;
-  country_code: string | null;
+  country_code:
+    | string
+    | null;
+  created_at: string;
 };
 
 type ArticleView = {
@@ -58,6 +60,7 @@ export default async function AdminDashboardPage() {
   const supabase =
     await createClient();
 
+  // Dashboard data
   const [
     {
       data: articles,
@@ -81,7 +84,7 @@ export default async function AdminDashboardPage() {
     supabase
       .from("site_visits")
       .select(
-        "id, country_code",
+        "id, country_code, created_at",
       ),
 
     supabase
@@ -116,11 +119,14 @@ export default async function AdminDashboardPage() {
     (articles ?? []) as Article[];
 
   const visitRows =
-    (siteVisits ?? []) as SiteVisit[];
+    (siteVisits ??
+      []) as SiteVisit[];
 
   const viewRows =
-    (articleViews ?? []) as ArticleView[];
+    (articleViews ??
+      []) as ArticleView[];
 
+  // Counters
   const publishedCount =
     articleRows.filter(
       (article) =>
@@ -141,17 +147,23 @@ export default async function AdminDashboardPage() {
   const totalArticleViews =
     viewRows.length;
 
+  // Top articles
   const articleViewCounts =
-    new Map<string, number>();
+    new Map<
+      string,
+      number
+    >();
 
-  viewRows.forEach((view) => {
-    articleViewCounts.set(
-      view.article_id,
-      (articleViewCounts.get(
+  viewRows.forEach(
+    (view) => {
+      articleViewCounts.set(
         view.article_id,
-      ) ?? 0) + 1,
-    );
-  });
+        (articleViewCounts.get(
+          view.article_id,
+        ) ?? 0) + 1,
+      );
+    },
+  );
 
   const topArticles =
     articleRows
@@ -178,8 +190,12 @@ export default async function AdminDashboardPage() {
       )
       .slice(0, 5);
 
+  // Visitor countries
   const countryCounts =
-    new Map<string, number>();
+    new Map<
+      string,
+      number
+    >();
 
   visitRows.forEach(
     (visit) => {
@@ -201,7 +217,10 @@ export default async function AdminDashboardPage() {
       countryCounts.entries(),
     )
       .map(
-        ([code, visits]) => ({
+        ([
+          code,
+          visits,
+        ]) => ({
           code,
           name:
             getCountryName(
@@ -227,20 +246,24 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     {
-      label: "Total Visits",
-      value: totalVisits,
+      label:
+        "Total Visits",
+      value:
+        totalVisits,
       description:
         "Website visits",
     },
     {
-      label: "Article Views",
+      label:
+        "Article Views",
       value:
         totalArticleViews,
       description:
         "Published article views",
     },
     {
-      label: "Published",
+      label:
+        "Published",
       value:
         publishedCount,
       description:
@@ -248,7 +271,8 @@ export default async function AdminDashboardPage() {
     },
     {
       label: "Drafts",
-      value: draftCount,
+      value:
+        draftCount,
       description:
         "Unpublished articles",
     },
@@ -256,36 +280,299 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-      <div>
-        <p className="text-xs font-bold tracking-[0.25em] text-[#687704] sm:text-sm">
-          OVERVIEW
-        </p>
+      {/* Header */}
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-bold tracking-[0.25em] text-[#687704] sm:text-sm">
+            OVERVIEW
+          </p>
 
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#27430D] sm:text-4xl">
-          Dashboard
-        </h1>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#27430D] sm:text-4xl">
+            Dashboard
+          </h1>
 
-        <p className="mt-2 text-sm text-[#8D7765] sm:text-base">
-          Manage your articles and monitor website performance.
-        </p>
+          <p className="mt-2 text-sm text-[#8D7765] sm:text-base">
+            Manage your
+            articles and
+            monitor website
+            performance.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/fun-facts/new"
+            className="
+              inline-flex
+              h-12
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-[#27430D]/20
+              bg-white
+              px-5
+              text-sm
+              font-semibold
+              text-[#27430D]
+              transition
+              hover:border-[#687704]/40
+              hover:bg-[#F8F5EC]
+            "
+          >
+            New Fun Fact
+          </Link>
+
+          <Link
+            href="/admin/articles/new"
+            className="
+              inline-flex
+              h-12
+              items-center
+              justify-center
+              rounded-xl
+              bg-[#27430D]
+              px-5
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-[#35591A]
+            "
+          >
+            New Article
+          </Link>
+        </div>
       </div>
 
-      <DashboardStats
-        stats={stats}
+      {/* Stats */}
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map(
+          (stat) => (
+            <div
+              key={
+                stat.label
+              }
+              className="
+                rounded-2xl
+                border
+                border-[#27430D]/10
+                bg-white
+                px-6
+                py-7
+                transition-all
+                duration-300
+                hover:-translate-y-1
+                hover:border-[#687704]/30
+                hover:shadow-[0_12px_30px_rgba(39,67,13,0.06)]
+              "
+            >
+              <p className="text-sm text-[#9A806E] sm:text-base">
+                {
+                  stat.label
+                }
+              </p>
+
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-[#27430D]">
+                {stat.value.toLocaleString()}
+              </p>
+
+              <p className="mt-2 text-xs text-[#9A806E]/60">
+                {
+                  stat.description
+                }
+              </p>
+            </div>
+          ),
+        )}
+      </div>
+
+      <DashboardViewsOverview
+        visits={visitRows.map(
+          (visit) => ({
+            created_at:
+              visit.created_at,
+          }),
+        )}
       />
 
+      {/* Analytics */}
       <div className="mt-7 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <TopPerformingArticles
-          articles={
-            topArticles
-          }
-        />
+        {/* Top articles */}
+        <section className="rounded-2xl border border-[#27430D]/10 bg-white p-6 sm:p-7">
+          <div>
+            <p className="text-xl font-semibold text-[#27430D] sm:text-2xl">
+              Top Performing
+              Articles
+            </p>
 
-        <VisitorCountries
-          countries={
-            visitorCountries
-          }
-        />
+            <p className="mt-1 text-sm text-[#9A806E] sm:text-base">
+              Your most viewed
+              published
+              articles.
+            </p>
+          </div>
+
+          {topArticles.length >
+          0 ? (
+            <div className="mt-8 overflow-hidden rounded-xl bg-[#F8F5EC]">
+              {topArticles.map(
+                (
+                  article,
+                  index,
+                ) => (
+                  <div
+                    key={
+                      article.id
+                    }
+                    className="
+                      flex
+                      items-center
+                      justify-between
+                      gap-6
+                      border-b
+                      border-[#27430D]/10
+                      px-5
+                      py-4
+                      last:border-b-0
+                      sm:px-6
+                    "
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#27430D]/10 text-sm font-semibold text-[#27430D]">
+                        {index +
+                          1}
+                      </span>
+
+                      <p className="truncate text-sm font-medium text-[#27430D] sm:text-base">
+                        {
+                          article.title
+                        }
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <p className="font-semibold text-[#27430D]">
+                        {article.views.toLocaleString()}
+                      </p>
+
+                      <p className="text-xs text-[#9A806E]">
+                        {article.views ===
+                        1
+                          ? "view"
+                          : "views"}
+                      </p>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          ) : (
+            <div className="mt-8 flex min-h-64 items-center justify-center rounded-xl bg-[#F8F5EC] px-6 text-center">
+              <div>
+                <p className="text-sm text-[#9A806E]">
+                  No article view
+                  data yet
+                </p>
+
+                <p className="mt-2 max-w-sm text-xs leading-5 text-[#9A806E]/60">
+                  Article
+                  performance
+                  will appear
+                  here once
+                  visitors begin
+                  reading your
+                  articles.
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Visitor countries */}
+        <section className="rounded-2xl border border-[#27430D]/10 bg-white p-6 sm:p-7">
+          <div>
+            <p className="text-xl font-semibold text-[#27430D] sm:text-2xl">
+              Visitor
+              Countries
+            </p>
+
+            <p className="mt-1 text-sm text-[#9A806E] sm:text-base">
+              Where your
+              website visitors
+              are coming from.
+            </p>
+          </div>
+
+          {visitorCountries.length >
+          0 ? (
+            <div className="mt-8 space-y-5 rounded-xl bg-[#F8F5EC] p-5 sm:p-6">
+              {visitorCountries.map(
+                (
+                  country,
+                ) => (
+                  <div
+                    key={
+                      country.code
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-[#27430D] sm:text-base">
+                          {
+                            country.name
+                          }
+                        </p>
+
+                        <p className="mt-0.5 text-xs text-[#9A806E]">
+                          {country.visits.toLocaleString()}{" "}
+                          {country.visits ===
+                          1
+                            ? "visit"
+                            : "visits"}
+                        </p>
+                      </div>
+
+                      <p className="text-sm font-semibold text-[#27430D]">
+                        {
+                          country.percentage
+                        }
+                        %
+                      </p>
+                    </div>
+
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#27430D]/10">
+                      <div
+                        className="h-full rounded-full bg-[#687704]"
+                        style={{
+                          width: `${country.percentage}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          ) : (
+            <div className="mt-8 flex min-h-64 items-center justify-center rounded-xl bg-[#F8F5EC] px-6 text-center">
+              <div>
+                <p className="text-sm text-[#9A806E]">
+                  No visitor
+                  data yet
+                </p>
+
+                <p className="mt-2 max-w-xs text-xs leading-5 text-[#9A806E]/60">
+                  Country
+                  analytics will
+                  appear here
+                  once visitors
+                  begin using the
+                  website.
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

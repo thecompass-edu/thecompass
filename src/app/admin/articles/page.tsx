@@ -1,12 +1,10 @@
 import Link from "next/link";
 
 import ArticleActionsMenu from "@/components/admin/ArticleActionsMenu";
-
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ArticlesPage() {
-  const supabase =
-    await createClient();
+  const supabase = await createClient();
 
   const {
     data: articles,
@@ -50,33 +48,45 @@ export default async function ArticlesPage() {
   return (
     <div className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
       {/* Header */}
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold tracking-[0.2em] text-[#687704]">
             CONTENT
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#27430D]">
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#27430D] sm:text-4xl">
             Articles
           </h1>
 
-          <p className="mt-2 text-sm text-[#523A23]/60">
-            Create, edit,
-            publish, and manage
-            Compass articles.
+          <p className="mt-3 text-sm leading-7 text-[#7B886C] sm:text-base">
+            Manage Compass articles.
           </p>
         </div>
 
         <Link
           href="/admin/articles/new"
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-[#27430D] px-5 text-sm font-semibold text-white transition hover:bg-[#687704]"
+          className="
+            inline-flex
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            bg-[#27430D]
+            px-6
+            py-3.5
+            text-sm
+            font-semibold
+            text-white
+            transition
+            hover:bg-[#35551A]
+          "
         >
           New Article
         </Link>
       </div>
 
       {/* Statistics */}
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+      <div className="mt-10 grid gap-5 md:grid-cols-3">
         {/* Total Articles */}
         <div className="rounded-2xl border border-[#27430D]/10 bg-white p-6">
           <p className="text-sm font-semibold text-[#523A23]">
@@ -103,8 +113,7 @@ export default async function ArticlesPage() {
           </p>
 
           <p className="mt-2 text-sm text-[#523A23]/50">
-            Live on the public
-            website
+            Live on the public website
           </p>
         </div>
 
@@ -125,7 +134,7 @@ export default async function ArticlesPage() {
       </div>
 
       {/* Article List */}
-      <div className="mt-6 overflow-hidden rounded-2xl border border-[#27430D]/10 bg-white">
+      <div className="mt-10 overflow-hidden rounded-2xl border border-[#27430D]/10 bg-white">
         {articleList.length ===
         0 ? (
           <div className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
@@ -157,10 +166,8 @@ export default async function ArticlesPage() {
             </h3>
 
             <p className="mt-2 max-w-sm text-sm leading-6 text-[#523A23]/55">
-              Create your first
-              article to start
-              publishing content on
-              The Compass.
+              Create your first article to start
+              publishing content on The Compass.
             </p>
 
             <Link
@@ -201,18 +208,14 @@ export default async function ArticlesPage() {
                 {articleList.map(
                   (article) => (
                     <tr
-                      key={
-                        article.id
-                      }
+                      key={article.id}
                       className="border-b border-[#27430D]/5 transition hover:bg-[#F6F1EA]/25 last:border-b-0"
                     >
                       {/* Article */}
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-[#27430D]">
-                            {
-                              article.title
-                            }
+                            {article.title}
                           </p>
 
                           {article.is_featured && (
@@ -223,10 +226,7 @@ export default async function ArticlesPage() {
                         </div>
 
                         <p className="mt-1 text-xs text-[#523A23]/45">
-                          /
-                          {
-                            article.slug
-                          }
+                          /{article.slug}
                         </p>
                       </td>
 
@@ -240,9 +240,7 @@ export default async function ArticlesPage() {
                               : "bg-[#523A23]/10 text-[#523A23]/70"
                           }`}
                         >
-                          {
-                            article.status
-                          }
+                          {article.status}
                         </span>
                       </td>
 

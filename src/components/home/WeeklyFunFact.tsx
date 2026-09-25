@@ -1,10 +1,108 @@
-import Link from "next/link";
+import Image from "next/image";
 
+import FunFactStoryModal from "@/components/home/FunFactStoryModal";
 import RevealOnScroll from "@/components/home/RevealOnScroll";
+import { createClient } from "@/lib/supabase/server";
 
-export default function WeeklyFunFact() {
+type FunFact = {
+  id: string;
+  title: string;
+  description: string;
+  fun_fact_number: number | null;
+  image_url: string | null;
+  status: "draft" | "published";
+  published_at: string | null;
+  created_at: string;
+};
+
+function formatDate(date: string | null) {
+  if (!date) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+export default async function WeeklyFunFact() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("fun_facts")
+    .select(`
+      id,
+      title,
+      description,
+      fun_fact_number,
+      image_url,
+      status,
+      published_at,
+      created_at
+    `)
+    .eq("status", "published")
+    .order("published_at", {
+      ascending: false,
+      nullsFirst: false,
+    });
+
+  if (error) {
+    console.error(
+      "WEEKLY FUN FACT FETCH ERROR:",
+      error,
+    );
+  }
+
+  const funFacts = (data ?? []) as FunFact[];
+
+  const latestFunFact =
+    funFacts[0] ?? null;
+
+  const olderFunFacts = funFacts
+    .slice(1)
+    .sort((a, b) => {
+      const aNumber =
+        a.fun_fact_number ?? 999999;
+
+      const bNumber =
+        b.fun_fact_number ?? 999999;
+
+      return aNumber - bNumber;
+    });
+
+  const storyOrder = latestFunFact
+    ? [
+        latestFunFact,
+        ...olderFunFacts,
+      ]
+    : [];
+
+  const stories = storyOrder
+    .filter(
+      (funFact) =>
+        Boolean(funFact.image_url),
+    )
+    .map((funFact) => ({
+      id: funFact.id,
+      title: funFact.title,
+      imageUrl:
+        funFact.image_url as string,
+      funFactNumber:
+        funFact.fun_fact_number,
+    }));
+
+  const publishedDate =
+    latestFunFact
+      ? formatDate(
+          latestFunFact.published_at ??
+            latestFunFact.created_at,
+        )
+      : "";
+
   return (
-    <aside className="lg:pt-20.25">
+    <aside className="self-start lg:sticky lg:top-24 lg:pt-20.25">
       <RevealOnScroll
         className="
           translate-y-12
@@ -17,92 +115,137 @@ export default function WeeklyFunFact() {
           data-[visible=true]:opacity-100
         "
       >
-        <div className="border border-[#27430D]/10 bg-[#FEFEFE]/70 p-6">
-          {/* Fun Fact Header */}
+        <div className="border border-[#27430D]/15 bg-[#FDFBF4] p-6">
+          {/* Header */}
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#687704]/30 bg-[#F8F5EC]">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-[#687704]"
-              >
-                <path
-                  d="M9 18h6M10 22h4M8.5 15.5C6.96 14.42 6 12.64 6 10.5a6 6 0 1112 0c0 2.14-.96 3.92-2.5 5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F8F5EC]">
+              <Image
+                src="/images/logo.svg"
+                alt=""
+                width={23}
+                height={23}
+                className="h-5.5 w-5.5 object-contain"
+              />
+            </div>
+
+            <div>
+              <p className="text-xs font-bold tracking-[0.18em] text-[#27430D]">
+                WEEKLY FUN FACT
+              </p>
+
+              <p className="mt-1 text-[11px] text-[#7B886C]">
+                A quick financial insight from The Compass
+              </p>
+            </div>
+          </div>
+
+          {latestFunFact ? (
+            <>
+              {/* Fun Fact image */}
+              <div className="group relative aspect-4/3 w-full overflow-hidden bg-[#F8F5EC]">
+                {latestFunFact.image_url ? (
+                  <>
+                    <Image
+                      src={
+                        latestFunFact.image_url
+                      }
+                      alt={
+                        latestFunFact.title
+                      }
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 340px"
+                      className="
+                        object-cover
+                        object-top
+                        transition-transform
+                        duration-700
+                        ease-[cubic-bezier(0.22,1,0.36,1)]
+                        group-hover:scale-[1.025]
+                      "
+                    />
+
+                    <div className="pointer-events-none absolute inset-0 bg-[#27430D]/5 transition-colors duration-500 group-hover:bg-transparent" />
+                  </>
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+                    <div className="relative h-10 w-10">
+                      <Image
+                        src="/images/logo.svg"
+                        alt=""
+                        fill
+                        className="object-contain opacity-40"
+                      />
+                    </div>
+
+                    <p className="mt-3 text-xs font-bold tracking-[0.15em] text-[#687704]">
+                      THE COMPASS
+                    </p>
+
+                    <p className="mt-1 text-sm text-[#7B886C]">
+                      Weekly Fun Fact
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Fun Fact details */}
+              <div className="mt-6">
+                {latestFunFact.fun_fact_number && (
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#687704]">
+                    FUN FACT #
+                    {
+                      latestFunFact.fun_fact_number
+                    }
+                  </p>
+                )}
+
+                <h3 className="mt-2 text-2xl font-bold leading-tight tracking-tight text-[#27430D]">
+                  {
+                    latestFunFact.title
+                  }
+                </h3>
+
+                {latestFunFact.description && (
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#7B886C]">
+                    {
+                      latestFunFact.description
+                    }
+                  </p>
+                )}
+
+                {publishedDate && (
+                  <p className="mt-4 text-sm text-[#8D7765]/70">
+                    {publishedDate}
+                  </p>
+                )}
+              </div>
+
+              {stories.length > 0 && (
+                <FunFactStoryModal
+                  stories={stories}
                 />
-              </svg>
-            </div>
+              )}
+            </>
+          ) : (
+            <div className="flex aspect-4/3 flex-col items-center justify-center border border-[#27430D]/10 bg-[#F8F5EC] px-7 text-center">
+              <div className="relative h-10 w-10 opacity-40">
+                <Image
+                  src="/images/logo.svg"
+                  alt=""
+                  fill
+                  className="object-contain"
+                />
+              </div>
 
-            <p className="text-sm font-bold tracking-[0.14em] text-[#27430D]">
-              WEEKLY FUN FACT
-            </p>
-          </div>
-
-          {/* Fun Fact Image Placeholder */}
-          <div className="flex aspect-4/3 items-center justify-center overflow-hidden bg-[#F8F5EC]">
-            <div className="text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687704]">
-                Fun Fact Image
+              <p className="mt-4 font-semibold text-[#27430D]">
+                New Fun Fact coming soon
               </p>
 
-              <p className="mt-1 text-sm text-[#523A23]/50">
-                Placeholder
+              <p className="mt-2 max-w-56 text-sm leading-6 text-[#7B886C]">
+                Check back for the next weekly financial Fun Fact.
               </p>
             </div>
-          </div>
-
-          {/* Fun Fact Content */}
-          <div className="mt-6">
-            <p className="text-xs font-bold tracking-[0.2em] text-[#687704]">
-              FUN FACT #1
-            </p>
-
-            <h3 className="mt-3 text-2xl font-bold text-[#27430D]">
-              Fun Fact Title
-            </h3>
-
-            <p className="mt-3 text-sm text-[#523A23]/50">
-              Sep 12, 2026
-            </p>
-          </div>
-
-          {/* View Story */}
-          <Link
-            href="#"
-            className="
-              group/story
-              mt-7
-              flex
-              items-center
-              justify-between
-              border
-              border-[#687704]/30
-              bg-[#F8F5EC]
-              px-5
-              py-4
-              font-semibold
-              text-[#27430D]
-              transition-colors
-              duration-300
-              hover:bg-[#687704]/10
-            "
-          >
-            <span>View Story</span>
-
-            <span
-              aria-hidden="true"
-              className="
-                transition-transform
-                duration-300
-                group-hover/story:translate-x-1
-              "
-            >
-              →
-            </span>
-          </Link>
+          )}
         </div>
       </RevealOnScroll>
     </aside>

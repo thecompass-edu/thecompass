@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useFormStatus } from "react-dom";
 
 import {
   DocumentTextIcon,
@@ -13,7 +12,6 @@ import {
 } from "@solar-icons/react/linear";
 
 import { logout } from "@/app/admin/actions";
-import ActionSpinner from "@/components/admin/ActionSpinner";
 
 type NavigationItem = {
   label: string;
@@ -21,6 +19,39 @@ type NavigationItem = {
   icon: React.ReactNode;
   exact?: boolean;
 };
+
+function FunFactIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M9 18h6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+
+      <path
+        d="M10 22h4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+
+      <path
+        d="M8.5 15.5C6.96 14.42 6 12.64 6 10.5a6 6 0 1 1 12 0c0 2.14-.96 3.92-2.5 5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 const navigationItems: NavigationItem[] = [
   {
@@ -46,36 +77,12 @@ const navigationItems: NavigationItem[] = [
       />
     ),
   },
+  {
+    label: "Fun Facts",
+    href: "/admin/fun-facts",
+    icon: <FunFactIcon />,
+  },
 ];
-
-function SignOutButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      aria-busy={pending ? true : undefined}
-      className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-[#523A23]/70 transition duration-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-60"
-    >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg">
-        {pending ? (
-          <ActionSpinner />
-        ) : (
-          <LogoutIcon
-            size={20}
-            strokeWidth={1.7}
-            aria-hidden="true"
-          />
-        )}
-      </span>
-
-      <span>
-        {pending ? "Signing out…" : "Sign out"}
-      </span>
-    </button>
-  );
-}
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -121,7 +128,7 @@ export default function AdminSidebar() {
         </Link>
       </div>
 
-      {/* Main navigation */}
+      {/* Main Navigation */}
       <nav className="flex-1 px-4 py-6">
         <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-[#523A23]/35">
           Content
@@ -158,7 +165,7 @@ export default function AdminSidebar() {
         </div>
       </nav>
 
-      {/* Bottom actions */}
+      {/* Bottom Actions */}
       <div className="border-t border-[#27430D]/10 p-4">
         <a
           href="/"
@@ -178,7 +185,20 @@ export default function AdminSidebar() {
         </a>
 
         <form action={logout}>
-          <SignOutButton />
+          <button
+            type="submit"
+            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-[#523A23]/70 transition duration-200 hover:bg-red-50 hover:text-red-600"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg">
+              <LogoutIcon
+                size={20}
+                strokeWidth={1.7}
+                aria-hidden="true"
+              />
+            </span>
+
+            <span>Sign out</span>
+          </button>
         </form>
       </div>
     </aside>
