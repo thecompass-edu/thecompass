@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  useEffect,
-} from "react";
+import { useEffect } from "react";
 
-const VISITOR_ID_KEY =
-  "compass_visitor_id";
-
-const SESSION_ID_KEY =
-  "compass_session_id";
+const VISITOR_ID_KEY = "compass_visitor_id";
+const SESSION_ID_KEY = "compass_session_id";
 
 type ArticleViewTrackerProps = {
   articleId: string;
@@ -18,20 +13,15 @@ function getOrCreateId(
   storage: Storage,
   key: string,
 ) {
-  const existing =
-    storage.getItem(key);
+  const existing = storage.getItem(key);
 
   if (existing) {
     return existing;
   }
 
-  const id =
-    crypto.randomUUID();
+  const id = crypto.randomUUID();
 
-  storage.setItem(
-    key,
-    id,
-  );
+  storage.setItem(key, id);
 
   return id;
 }
@@ -41,39 +31,30 @@ export default function ArticleViewTracker({
 }: ArticleViewTrackerProps) {
   useEffect(() => {
     try {
-      const viewKey =
-        `compass_article_view_${articleId}`;
+      const viewKey = `compass_article_view_${articleId}`;
 
       if (
-        sessionStorage.getItem(
-          viewKey,
-        ) === "1"
+        sessionStorage.getItem(viewKey) === "1"
       ) {
         return;
       }
 
-      const visitorId =
-        getOrCreateId(
-          localStorage,
-          VISITOR_ID_KEY,
-        );
+      const visitorId = getOrCreateId(
+        localStorage,
+        VISITOR_ID_KEY,
+      );
 
-      const sessionId =
-        getOrCreateId(
-          sessionStorage,
-          SESSION_ID_KEY,
-        );
-
-      const controller =
-        new AbortController();
+      const sessionId = getOrCreateId(
+        sessionStorage,
+        SESSION_ID_KEY,
+      );
 
       void fetch(
         "/api/analytics/article-view",
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             articleId,
@@ -82,8 +63,6 @@ export default function ArticleViewTracker({
           }),
           cache: "no-store",
           keepalive: true,
-          signal:
-            controller.signal,
         },
       )
         .then((response) => {
@@ -97,10 +76,6 @@ export default function ArticleViewTracker({
         .catch(() => {
           // Analytics should never interrupt the article.
         });
-
-      return () => {
-        controller.abort();
-      };
     } catch {
       // Storage may be unavailable in some browsers.
     }

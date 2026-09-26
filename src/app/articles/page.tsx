@@ -81,7 +81,7 @@ export default async function ArticlesPage() {
       <Navbar />
 
       {/* Page Header */}
-      <section className="mx-auto w-full max-w-[1175px] px-5 pb-10 pt-16 sm:px-6 lg:px-7 lg:pb-14 lg:pt-20">
+      <section className="mx-auto w-full max-w-293.75 px-5 pb-10 pt-16 sm:px-6 lg:px-7 lg:pb-14 lg:pt-20">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#687704]">
           Explore
         </p>
@@ -97,12 +97,12 @@ export default async function ArticlesPage() {
       </section>
 
       {/* Divider */}
-      <div className="mx-auto w-full max-w-[1175px] px-5 sm:px-6 lg:px-7">
+      <div className="mx-auto w-full max-w-293.75 px-5 sm:px-6 lg:px-7">
         <div className="border-t border-[#27430D]/10" />
       </div>
 
       {/* Articles */}
-      <section className="mx-auto w-full max-w-[1175px] px-5 py-12 sm:px-6 lg:px-7 lg:py-16">
+      <section className="mx-auto w-full max-w-293.75 px-5 py-12 sm:px-6 lg:px-7 lg:py-16">
         {publishedArticles.length === 0 ? (
           /* Empty State */
           <div className="rounded-3xl border border-[#27430D]/10 bg-[#F8F6F0] px-6 py-16 text-center">
@@ -138,7 +138,7 @@ export default async function ArticlesPage() {
                       href={`/articles/${article.slug}`}
                       className="block"
                     >
-                      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-[#F0EEE7]">
+                      <div className="relative aspect-16/10 w-full overflow-hidden rounded-2xl bg-[#F0EEE7]">
                         {article.cover_image_url ? (
                           <Image
                             src={article.cover_image_url}
@@ -206,7 +206,7 @@ export default async function ArticlesPage() {
                       </div>
 
                       {/* Read Article - appears on hover */}
-                      <div className="mt-6 min-h-[24px]">
+                      <div className="mt-6 min-h-6">
                         <Link
                           href={`/articles/${article.slug}`}
                           className="

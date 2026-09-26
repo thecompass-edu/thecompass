@@ -1,111 +1,136 @@
-import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  analyticsJson,
-  getCountryCode,
-  hasOnlyKeys,
-  isUuid,
-  protectAnalyticsRequest,
-  readAnalyticsJson,
-} from "@/lib/security/analyticsRequest";
+  type NextRequest,
+  NextResponse,
+} from "next/server";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+
+type VisitBody = {
+  visitorId?: string;
+  sessionId?: string;
+};
+
+function getCountryCode(request: NextRequest) {
+  const country =
+    request.headers.get("x-vercel-ip-country") ??
+    request.headers.get("cf-ipcountry") ??
+    request.headers.get("x-country-code");
+
+  if (!country) {
+    return "Unknown";
+  }
+
+  return country.trim().toUpperCase();
+}
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
 ) {
-  const blocked =
-    protectAnalyticsRequest(
-      request,
-    );
+  let body: VisitBody;
 
-  if (blocked) {
-    return blocked;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      {
+        error: "Invalid request body.",
+      },
+      {
+        status: 400,
+      },
+    );
   }
 
-  const bodyResult =
-    await readAnalyticsJson(
-      request,
-    );
+  const visitorId =
+    body.visitorId?.trim();
 
-  if (!bodyResult.ok) {
-    return bodyResult.response;
-  }
+  const sessionId =
+    body.sessionId?.trim();
 
-  const body = bodyResult.data;
-
-  if (
-    !hasOnlyKeys(body, [
-      "visitorId",
-      "sessionId",
-    ])
-  ) {
-    return analyticsJson(
+  if (!visitorId || !sessionId) {
+    return NextResponse.json(
       {
         error:
-          "Invalid request body.",
+          "Visitor and session IDs are required.",
       },
-      400,
-    );
-  }
-
-  const {
-    visitorId,
-    sessionId,
-  } = body;
-
-  if (
-    !isUuid(visitorId) ||
-    !isUuid(sessionId)
-  ) {
-    return analyticsJson(
       {
-        error:
-          "Invalid analytics identifiers.",
+        status: 400,
       },
-      400,
     );
   }
 
   const supabase =
     createAdminClient();
 
-  const { error } =
+  // Prevent duplicate session visits.
+  const {
+    data: existingVisit,
+    error: lookupError,
+  } = await supabase
+    .from("site_visits")
+    .select("id")
+    .eq(
+      "session_id",
+      sessionId,
+    )
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error(
+      "VISIT LOOKUP ERROR:",
+      lookupError,
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Unable to check visit.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+
+  if (existingVisit) {
+    return NextResponse.json({
+      ok: true,
+      duplicate: true,
+    });
+  }
+
+  const countryCode =
+    getCountryCode(request);
+
+  const { error: insertError } =
     await supabase
       .from("site_visits")
       .insert({
-        visitor_id:
-          visitorId,
-        session_id:
-          sessionId,
-        country_code:
-          getCountryCode(
-            request,
-          ),
+        visitor_id: visitorId,
+        session_id: sessionId,
+        country_code: countryCode,
+        created_at:
+          new Date().toISOString(),
       });
 
-  if (error) {
-    // This session was already counted.
-    if (
-      error.code === "23505"
-    ) {
-      return analyticsJson({
-        ok: true,
-      });
-    }
-
+  if (insertError) {
     console.error(
-      "SITE VISIT INSERT ERROR:",
-      error,
+      "VISIT INSERT ERROR:",
+      insertError,
     );
 
-    return analyticsJson(
+    return NextResponse.json(
       {
         error:
           "Unable to record visit.",
       },
-      500,
+      {
+        status: 500,
+      },
     );
   }
 
-  return analyticsJson({
+  return NextResponse.json({
     ok: true,
   });
 }

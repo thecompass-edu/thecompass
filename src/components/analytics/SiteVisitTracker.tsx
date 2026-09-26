@@ -3,106 +3,84 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const VISITOR_STORAGE_KEY = "compass_visitor_id";
-const SESSION_STORAGE_KEY = "compass_session_id";
+const VISITOR_ID_KEY = "compass_visitor_id";
+const SESSION_ID_KEY = "compass_session_id";
 const VISIT_RECORDED_KEY = "compass_visit_recorded";
 
-function getVisitorId() {
-  let visitorId = localStorage.getItem(VISITOR_STORAGE_KEY);
+function getOrCreateId(
+  storage: Storage,
+  key: string,
+) {
+  const existing = storage.getItem(key);
 
-  if (!visitorId) {
-    visitorId = crypto.randomUUID();
-
-    localStorage.setItem(
-      VISITOR_STORAGE_KEY,
-      visitorId,
-    );
+  if (existing) {
+    return existing;
   }
 
-  return visitorId;
-}
+  const id = crypto.randomUUID();
 
-function getSessionId() {
-  let sessionId = sessionStorage.getItem(
-    SESSION_STORAGE_KEY,
-  );
+  storage.setItem(key, id);
 
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY,
-      sessionId,
-    );
-  }
-
-  return sessionId;
+  return id;
 }
 
 export default function SiteVisitTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
-    /*
-     * Do not count admin/login activity
-     * as public website traffic.
-     */
-    const isAdminRoute =
-      pathname.startsWith("/admin");
+    try {
+      // Ignore admin and login traffic.
+      if (
+        pathname.startsWith("/admin") ||
+        pathname.startsWith("/login")
+      ) {
+        return;
+      }
 
-    const isLoginRoute =
-      pathname.startsWith("/login");
+      if (
+        sessionStorage.getItem(
+          VISIT_RECORDED_KEY,
+        ) === "1"
+      ) {
+        return;
+      }
 
-    if (isAdminRoute || isLoginRoute) {
-      return;
-    }
-
-    const alreadyRecorded =
-      sessionStorage.getItem(
-        VISIT_RECORDED_KEY,
+      const visitorId = getOrCreateId(
+        localStorage,
+        VISITOR_ID_KEY,
       );
 
-    if (alreadyRecorded) {
-      return;
+      const sessionId = getOrCreateId(
+        sessionStorage,
+        SESSION_ID_KEY,
+      );
+
+      void fetch("/api/analytics/visit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          visitorId,
+          sessionId,
+        }),
+        cache: "no-store",
+        keepalive: true,
+      })
+        .then((response) => {
+          if (response.ok) {
+            sessionStorage.setItem(
+              VISIT_RECORDED_KEY,
+              "1",
+            );
+          }
+        })
+        .catch(() => {
+          // Analytics should never interrupt the website.
+        });
+    } catch {
+      // Storage may be unavailable in some browsers.
     }
-
-    const visitorId = getVisitorId();
-    const sessionId = getSessionId();
-
-    async function recordVisit() {
-      try {
-        const response = await fetch(
-          "/api/analytics/visit",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              visitorId,
-              sessionId,
-            }),
-          },
-        );
-
-        if (response.ok) {
-          sessionStorage.setItem(
-            VISIT_RECORDED_KEY,
-            "true",
-          );
-        }
-      } catch (error) {
-        console.error(
-          "VISIT TRACKING ERROR:",
-          error,
-        );
-      }
-    }
-
-    void recordVisit();
   }, [pathname]);
 
   return null;

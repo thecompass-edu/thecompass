@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import DashboardViewsOverview from "@/components/admin/DashboardViewsOverview";
+import DashboardTopArticles from "@/components/admin/dashboard/DashboardTopArticles";
+import DashboardViewsOverview from "@/components/admin/dashboard/DashboardViewsOverview";
+import DashboardVisitorCountries from "@/components/admin/dashboard/DashboardVisitorCountries";
 import { createClient } from "@/lib/supabase/server";
 
-export const dynamic =
-  "force-dynamic";
-
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type Article = {
@@ -17,43 +17,104 @@ type Article = {
 
 type SiteVisit = {
   id: string;
-  country_code:
-    | string
-    | null;
-  created_at: string;
+  country_code: string | null;
+  created_at: string | null;
 };
 
 type ArticleView = {
   id: string;
   article_id: string;
+  created_at: string | null;
 };
 
-function getCountryName(
-  code: string,
-) {
-  if (
-    !code ||
-    code === "Unknown"
-  ) {
+type TopArticle = {
+  id: string;
+  title: string;
+  views: number;
+  previousViews: number;
+  trend: number | null;
+};
+
+type VisitorCountry = {
+  code: string;
+  name: string;
+  visits: number;
+  percentage: number;
+};
+
+function getCountryName(code: string) {
+  if (!code || code === "Unknown") {
     return "Unknown";
   }
 
   try {
-    const displayNames =
-      new Intl.DisplayNames(
-        ["en"],
-        {
-          type: "region",
-        },
-      );
+    const displayNames = new Intl.DisplayNames(["en"], {
+      type: "region",
+    });
 
-    return (
-      displayNames.of(code) ??
-      code
-    );
+    return displayNames.of(code) ?? code;
   } catch {
     return code;
   }
+}
+
+function startOfDay(date: Date) {
+  const copy = new Date(date);
+
+  copy.setHours(0, 0, 0, 0);
+
+  return copy;
+}
+
+function addDays(
+  date: Date,
+  amount: number,
+) {
+  const copy = new Date(date);
+
+  copy.setDate(
+    copy.getDate() + amount,
+  );
+
+  return copy;
+}
+
+function isDateInRange(
+  value: string | null,
+  start: Date,
+  end: Date,
+) {
+  if (!value) {
+    return false;
+  }
+
+  const date = startOfDay(
+    new Date(value),
+  );
+
+  return (
+    date >= start &&
+    date <= end
+  );
+}
+
+function getTrend(
+  current: number,
+  previous: number,
+) {
+  if (previous === 0) {
+    if (current === 0) {
+      return 0;
+    }
+
+    return 100;
+  }
+
+  return Math.round(
+    ((current - previous) /
+      previous) *
+      100,
+  );
 }
 
 export default async function AdminDashboardPage() {
@@ -84,13 +145,13 @@ export default async function AdminDashboardPage() {
     supabase
       .from("site_visits")
       .select(
-        "id, country_code, created_at",
+        "id, country_code, created_at:visited_at",
       ),
 
     supabase
       .from("article_views")
       .select(
-        "id, article_id",
+        "id, article_id, created_at",
       ),
   ]);
 
@@ -119,12 +180,10 @@ export default async function AdminDashboardPage() {
     (articles ?? []) as Article[];
 
   const visitRows =
-    (siteVisits ??
-      []) as SiteVisit[];
+    (siteVisits ?? []) as SiteVisit[];
 
   const viewRows =
-    (articleViews ??
-      []) as ArticleView[];
+    (articleViews ?? []) as ArticleView[];
 
   // Counters
   const publishedCount =
@@ -147,60 +206,188 @@ export default async function AdminDashboardPage() {
   const totalArticleViews =
     viewRows.length;
 
-  // Top articles
-  const articleViewCounts =
-    new Map<
-      string,
-      number
-    >();
-
-  viewRows.forEach(
-    (view) => {
-      articleViewCounts.set(
-        view.article_id,
-        (articleViewCounts.get(
-          view.article_id,
-        ) ?? 0) + 1,
-      );
+  const stats = [
+    {
+      label: "Total Visits",
+      value: totalVisits,
+      description:
+        "Website visits",
     },
-  );
+    {
+      label: "Article Views",
+      value: totalArticleViews,
+      description:
+        "Published article views",
+    },
+    {
+      label: "Published",
+      value: publishedCount,
+      description:
+        "Published articles",
+    },
+    {
+      label: "Drafts",
+      value: draftCount,
+      description:
+        "Unpublished articles",
+    },
+  ];
 
-  const topArticles =
-    articleRows
-      .filter(
-        (article) =>
-          article.status ===
-          "published",
-      )
-      .map((article) => ({
-        ...article,
-        views:
-          articleViewCounts.get(
-            article.id,
-          ) ?? 0,
-      }))
-      .filter(
-        (article) =>
-          article.views > 0,
-      )
-      .sort(
-        (a, b) =>
-          b.views -
-          a.views,
-      )
-      .slice(0, 5);
+  // 30-day period
+  const today =
+    startOfDay(new Date());
+
+  const currentStart =
+    addDays(today, -29);
+
+  const previousEnd =
+    addDays(
+      currentStart,
+      -1,
+    );
+
+  const previousStart =
+    addDays(
+      previousEnd,
+      -29,
+    );
+
+  const hasTimedArticleViews =
+    viewRows.some(
+      (view) =>
+        Boolean(
+          view.created_at,
+        ),
+    );
+
+  // Top articles
+  const publishedArticles =
+    articleRows.filter(
+      (article) =>
+        article.status ===
+        "published",
+    );
+
+  let topArticles: TopArticle[];
+
+  if (hasTimedArticleViews) {
+    topArticles =
+      publishedArticles
+        .map((article) => {
+          const currentViews =
+            viewRows.filter(
+              (view) =>
+                view.article_id ===
+                  article.id &&
+                isDateInRange(
+                  view.created_at,
+                  currentStart,
+                  today,
+                ),
+            ).length;
+
+          const previousViews =
+            viewRows.filter(
+              (view) =>
+                view.article_id ===
+                  article.id &&
+                isDateInRange(
+                  view.created_at,
+                  previousStart,
+                  previousEnd,
+                ),
+            ).length;
+
+          return {
+            id: article.id,
+            title:
+              article.title,
+            views:
+              currentViews,
+            previousViews,
+            trend:
+              getTrend(
+                currentViews,
+                previousViews,
+              ),
+          };
+        })
+        .filter(
+          (article) =>
+            article.views > 0,
+        )
+        .sort(
+          (a, b) =>
+            b.views -
+            a.views,
+        )
+        .slice(0, 5);
+  } else {
+    const viewCounts =
+      new Map<
+        string,
+        number
+      >();
+
+    viewRows.forEach(
+      (view) => {
+        viewCounts.set(
+          view.article_id,
+          (viewCounts.get(
+            view.article_id,
+          ) ?? 0) + 1,
+        );
+      },
+    );
+
+    topArticles =
+      publishedArticles
+        .map((article) => ({
+          id: article.id,
+          title:
+            article.title,
+          views:
+            viewCounts.get(
+              article.id,
+            ) ?? 0,
+          previousViews: 0,
+          trend: null,
+        }))
+        .filter(
+          (article) =>
+            article.views > 0,
+        )
+        .sort(
+          (a, b) =>
+            b.views -
+            a.views,
+        )
+        .slice(0, 5);
+  }
 
   // Visitor countries
+  const periodVisitRows =
+    visitRows.filter(
+      (visit) =>
+        isDateInRange(
+          visit.created_at,
+          currentStart,
+          today,
+        ),
+    );
+
   const countryCounts =
     new Map<
       string,
       number
     >();
 
-  visitRows.forEach(
+  periodVisitRows.forEach(
     (visit) => {
       const countryCode =
-        visit.country_code ||
+        visit.country_code
+          ?.trim()
+          .toUpperCase() ||
         "Unknown";
 
       countryCounts.set(
@@ -212,7 +399,11 @@ export default async function AdminDashboardPage() {
     },
   );
 
-  const visitorCountries =
+  const periodVisitors =
+    periodVisitRows.length;
+
+  const visitorCountries:
+    VisitorCountry[] =
     Array.from(
       countryCounts.entries(),
     )
@@ -228,11 +419,13 @@ export default async function AdminDashboardPage() {
             ),
           visits,
           percentage:
-            totalVisits > 0
-              ? Math.round(
-                  (visits /
-                    totalVisits) *
-                    100,
+            periodVisitors > 0
+              ? Number(
+                  (
+                    (visits /
+                      periodVisitors) *
+                    100
+                  ).toFixed(1),
                 )
               : 0,
         }),
@@ -242,41 +435,25 @@ export default async function AdminDashboardPage() {
           b.visits -
           a.visits,
       )
-      .slice(0, 5);
+      .slice(0, 6);
 
-  const stats = [
-    {
-      label:
-        "Total Visits",
-      value:
-        totalVisits,
-      description:
-        "Website visits",
-    },
-    {
-      label:
-        "Article Views",
-      value:
-        totalArticleViews,
-      description:
-        "Published article views",
-    },
-    {
-      label:
-        "Published",
-      value:
-        publishedCount,
-      description:
-        "Published articles",
-    },
-    {
-      label: "Drafts",
-      value:
-        draftCount,
-      description:
-        "Unpublished articles",
-    },
-  ];
+  // Chart data
+  const chartVisits =
+    visitRows
+      .filter(
+        (
+          visit,
+        ): visit is SiteVisit & {
+          created_at: string;
+        } =>
+          Boolean(
+            visit.created_at,
+          ),
+      )
+      .map((visit) => ({
+        created_at:
+          visit.created_at,
+      }));
 
   return (
     <div className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
@@ -292,9 +469,8 @@ export default async function AdminDashboardPage() {
           </h1>
 
           <p className="mt-2 text-sm text-[#8D7765] sm:text-base">
-            Manage your
-            articles and
-            monitor website
+            Manage your articles
+            and monitor website
             performance.
           </p>
         </div>
@@ -302,43 +478,14 @@ export default async function AdminDashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/admin/fun-facts/new"
-            className="
-              inline-flex
-              h-12
-              items-center
-              justify-center
-              rounded-xl
-              border
-              border-[#27430D]/20
-              bg-white
-              px-5
-              text-sm
-              font-semibold
-              text-[#27430D]
-              transition
-              hover:border-[#687704]/40
-              hover:bg-[#F8F5EC]
-            "
+            className="inline-flex h-12 items-center justify-center rounded-xl border border-[#27430D]/15 bg-white px-5 text-sm font-semibold text-[#27430D] transition hover:border-[#687704]/40 hover:bg-[#F8F5EC]"
           >
             New Fun Fact
           </Link>
 
           <Link
             href="/admin/articles/new"
-            className="
-              inline-flex
-              h-12
-              items-center
-              justify-center
-              rounded-xl
-              bg-[#27430D]
-              px-5
-              text-sm
-              font-semibold
-              text-white
-              transition
-              hover:bg-[#35591A]
-            "
+            className="inline-flex h-12 items-center justify-center rounded-xl bg-[#27430D] px-5 text-sm font-semibold text-white transition hover:bg-[#35591A]"
           >
             New Article
           </Link>
@@ -353,31 +500,19 @@ export default async function AdminDashboardPage() {
               key={
                 stat.label
               }
-              className="
-                rounded-2xl
-                border
-                border-[#27430D]/10
-                bg-white
-                px-6
-                py-7
-                transition-all
-                duration-300
-                hover:-translate-y-1
-                hover:border-[#687704]/30
-                hover:shadow-[0_12px_30px_rgba(39,67,13,0.06)]
-              "
+              className="rounded-3xl border border-[#27430D]/10 bg-white px-6 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#687704]/25 hover:shadow-[0_16px_40px_rgba(39,67,13,0.06)]"
             >
-              <p className="text-sm text-[#9A806E] sm:text-base">
+              <p className="text-sm font-medium text-[#9A806E] sm:text-base">
                 {
                   stat.label
                 }
               </p>
 
-              <p className="mt-5 text-4xl font-semibold tracking-tight text-[#27430D]">
+              <p className="mt-4 text-4xl font-semibold tracking-tight text-[#27430D]">
                 {stat.value.toLocaleString()}
               </p>
 
-              <p className="mt-2 text-xs text-[#9A806E]/60">
+              <p className="mt-2 text-xs text-[#9A806E]/70">
                 {
                   stat.description
                 }
@@ -387,192 +522,33 @@ export default async function AdminDashboardPage() {
         )}
       </div>
 
+      {/* Views */}
       <DashboardViewsOverview
-        visits={visitRows.map(
-          (visit) => ({
-            created_at:
-              visit.created_at,
-          }),
-        )}
+        visits={chartVisits}
       />
 
       {/* Analytics */}
-      <div className="mt-7 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        {/* Top articles */}
-        <section className="rounded-2xl border border-[#27430D]/10 bg-white p-6 sm:p-7">
-          <div>
-            <p className="text-xl font-semibold text-[#27430D] sm:text-2xl">
-              Top Performing
-              Articles
-            </p>
+      <div className="mt-7 grid gap-6 xl:grid-cols-2">
+        <DashboardTopArticles
+          articles={
+            topArticles
+          }
+          periodLabel={
+            hasTimedArticleViews
+              ? "Last 30 days"
+              : "All recorded views"
+          }
+        />
 
-            <p className="mt-1 text-sm text-[#9A806E] sm:text-base">
-              Your most viewed
-              published
-              articles.
-            </p>
-          </div>
-
-          {topArticles.length >
-          0 ? (
-            <div className="mt-8 overflow-hidden rounded-xl bg-[#F8F5EC]">
-              {topArticles.map(
-                (
-                  article,
-                  index,
-                ) => (
-                  <div
-                    key={
-                      article.id
-                    }
-                    className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-6
-                      border-b
-                      border-[#27430D]/10
-                      px-5
-                      py-4
-                      last:border-b-0
-                      sm:px-6
-                    "
-                  >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#27430D]/10 text-sm font-semibold text-[#27430D]">
-                        {index +
-                          1}
-                      </span>
-
-                      <p className="truncate text-sm font-medium text-[#27430D] sm:text-base">
-                        {
-                          article.title
-                        }
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <p className="font-semibold text-[#27430D]">
-                        {article.views.toLocaleString()}
-                      </p>
-
-                      <p className="text-xs text-[#9A806E]">
-                        {article.views ===
-                        1
-                          ? "view"
-                          : "views"}
-                      </p>
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
-          ) : (
-            <div className="mt-8 flex min-h-64 items-center justify-center rounded-xl bg-[#F8F5EC] px-6 text-center">
-              <div>
-                <p className="text-sm text-[#9A806E]">
-                  No article view
-                  data yet
-                </p>
-
-                <p className="mt-2 max-w-sm text-xs leading-5 text-[#9A806E]/60">
-                  Article
-                  performance
-                  will appear
-                  here once
-                  visitors begin
-                  reading your
-                  articles.
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Visitor countries */}
-        <section className="rounded-2xl border border-[#27430D]/10 bg-white p-6 sm:p-7">
-          <div>
-            <p className="text-xl font-semibold text-[#27430D] sm:text-2xl">
-              Visitor
-              Countries
-            </p>
-
-            <p className="mt-1 text-sm text-[#9A806E] sm:text-base">
-              Where your
-              website visitors
-              are coming from.
-            </p>
-          </div>
-
-          {visitorCountries.length >
-          0 ? (
-            <div className="mt-8 space-y-5 rounded-xl bg-[#F8F5EC] p-5 sm:p-6">
-              {visitorCountries.map(
-                (
-                  country,
-                ) => (
-                  <div
-                    key={
-                      country.code
-                    }
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-[#27430D] sm:text-base">
-                          {
-                            country.name
-                          }
-                        </p>
-
-                        <p className="mt-0.5 text-xs text-[#9A806E]">
-                          {country.visits.toLocaleString()}{" "}
-                          {country.visits ===
-                          1
-                            ? "visit"
-                            : "visits"}
-                        </p>
-                      </div>
-
-                      <p className="text-sm font-semibold text-[#27430D]">
-                        {
-                          country.percentage
-                        }
-                        %
-                      </p>
-                    </div>
-
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#27430D]/10">
-                      <div
-                        className="h-full rounded-full bg-[#687704]"
-                        style={{
-                          width: `${country.percentage}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
-          ) : (
-            <div className="mt-8 flex min-h-64 items-center justify-center rounded-xl bg-[#F8F5EC] px-6 text-center">
-              <div>
-                <p className="text-sm text-[#9A806E]">
-                  No visitor
-                  data yet
-                </p>
-
-                <p className="mt-2 max-w-xs text-xs leading-5 text-[#9A806E]/60">
-                  Country
-                  analytics will
-                  appear here
-                  once visitors
-                  begin using the
-                  website.
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
+        <DashboardVisitorCountries
+          countries={
+            visitorCountries
+          }
+          totalVisitors={
+            periodVisitors
+          }
+          periodLabel="Last 30 days"
+        />
       </div>
     </div>
   );
