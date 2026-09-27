@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AdminToastHost from "@/components/admin/AdminToastHost";
 import { createClient } from "@/lib/supabase/server";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -19,13 +20,39 @@ export default async function AdminLayout({
 }: AdminLayoutProps) {
   const supabase = await createClient();
 
+  // Check authentication
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  // Protect every route inside /admin.
-  if (!user) {
-    redirect("/login?redirectTo=/admin");
+  if (userError || !user) {
+    redirect(
+      "/login?redirectTo=/admin",
+    );
+  }
+
+  // Check admin access
+  const {
+    data: adminAccess,
+    error: adminAccessError,
+  } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (adminAccessError) {
+    console.error(
+      "ADMIN AUTHORIZATION ERROR:",
+      adminAccessError,
+    );
+
+    redirect("/");
+  }
+
+  if (!adminAccess) {
+    redirect("/");
   }
 
   return (
@@ -34,10 +61,11 @@ export default async function AdminLayout({
     >
       <AdminSidebar />
 
-      {/* Leave room for the fixed sidebar on desktop. */}
       <main className="min-h-screen lg:ml-68">
         {children}
       </main>
+
+      <AdminToastHost />
     </div>
   );
 }

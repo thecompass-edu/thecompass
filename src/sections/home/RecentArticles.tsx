@@ -1,196 +1,515 @@
-import Image, { StaticImageData } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 
-import article1 from "@/assets/RecentArticle/article-1.png";
-import article2 from "@/assets/RecentArticle/article-2.jpg";
+import highlightBg from "@/assets/RecentArticle/highlight.png";
+import rectangleBackground from "@/assets/RecentArticle/rectangle-background.png";
+import RevealOnScroll from "@/components/home/RevealOnScroll";
+import WeeklyFunFact from "@/components/home/WeeklyFunFact";
+import { createClient } from "@/lib/supabase/server";
 
 type Article = {
-  id: number;
+  id: string;
   title: string;
-  excerpt: string;
-  date: string;
-  readTime: string;
-  image: StaticImageData;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  cover_image_url: string | null;
+  author_name: string | null;
+  category: string | null;
+  status: string;
+  is_featured: boolean | null;
+  published_at: string | null;
+  created_at: string;
 };
 
-const articles: Article[] = [
-  {
-    id: 1,
-    title: "Why Digital Literacy Matters More Than Ever",
-    excerpt:
-      "a harsh truth where the rich keep spending and the poor tries to survive",
-    date: "Sep 10, 2026",
-    readTime: "3 min read",
-    image: article1,
-  },
-  {
-    id: 2,
-    title: "Why Small Habits Matter More Than Big Goals",
-    excerpt:
-      "Big goals can give us direction, but the small things we do every day are often what actually determine whether we reach them.",
-    date: "Sep 10, 2026",
-    readTime: "3 min read",
-    image: article2,
-  },
-];
+function formatDate(date: string | null) {
+  if (!date) {
+    return "";
+  }
 
-export default function RecentArticles() {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+function getReadingTime(content: string) {
+  const textContent = content
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+
+  const words = textContent
+    .split(/\s+/)
+    .filter(Boolean).length;
+
+  return Math.max(
+    1,
+    Math.ceil(words / 200),
+  );
+}
+
+export default async function RecentArticles() {
+  const supabase = await createClient();
+
+  const {
+    data: articles,
+    error,
+  } = await supabase
+    .from("articles")
+    .select(`
+      id,
+      title,
+      slug,
+      excerpt,
+      content,
+      cover_image_url,
+      author_name,
+      category,
+      status,
+      is_featured,
+      published_at,
+      created_at
+    `)
+    .eq("status", "published")
+    .order("published_at", {
+      ascending: false,
+      nullsFirst: false,
+    })
+    .order("created_at", {
+      ascending: false,
+    });
+
+  if (error) {
+    console.warn("RECENT ARTICLES FETCH ERROR", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+  }
+
+  const publishedArticles =
+    ((articles ?? []) as Article[]).filter(
+      (article) => !article.is_featured,
+    );
+
+  const shouldScroll =
+    publishedArticles.length > 2;
+
   return (
-    <section className="border-t border-[#27430D]/10 bg-[#F6F1EA]">
+    <section className="border-t border-[#27430D]/10 bg-[#F8F5EC]">
       <div className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
-          {/* LEFT SIDE */}
-          <div>
-            {/* Section Heading */}
-            <div className="mb-8 flex items-end justify-between gap-4">
-              <div>
-                <p className="mb-2 text-xs font-bold tracking-[0.25em] text-[#687704] sm:text-sm">
-                  LATEST ARTICLES
-                </p>
+          {/* Articles */}
+          <div className="min-w-0">
+            {/* Header */}
+            <RevealOnScroll
+              className="
+                translate-y-8
+                opacity-0
+                transition-all
+                duration-700
+                ease-[cubic-bezier(0.22,1,0.36,1)]
+                data-[visible=true]:translate-y-0
+                data-[visible=true]:opacity-100
+              "
+            >
+              <div className="mb-8 flex items-end justify-between gap-4">
+                <div>
+                  <p className="mb-2 text-xs font-bold tracking-[0.25em] text-[#687704] sm:text-sm">
+                    LATEST FROM THE COMPASS
+                  </p>
 
-                <div className="flex items-center gap-5">
-                  <h2 className="text-3xl font-bold tracking-tight text-[#27430D] sm:text-4xl">
-                    Recent Articles
-                  </h2>
+                  <div className="flex items-center gap-5">
+                    <h2 className="text-3xl font-bold tracking-tight text-[#27430D] sm:text-4xl">
+                      Recent Articles
+                    </h2>
 
-                  <span className="hidden h-px w-9 bg-[#27430D] sm:block" />
+                    <span className="hidden h-px w-9 bg-[#27430D] sm:block" />
+                  </div>
                 </div>
-              </div>
 
-              <Link
-                href="/articles"
-                className="hidden items-center gap-3 text-sm font-semibold text-[#27430D] transition-opacity hover:opacity-70 sm:flex"
-              >
-                View all articles
-                <span aria-hidden="true">›</span>
-              </Link>
-            </div>
+                <Link
+                  href="/articles"
+                  className="hidden items-center gap-3 text-sm font-semibold text-[#27430D] transition-opacity hover:opacity-70 sm:flex"
+                >
+                  View all articles
+
+                  <span aria-hidden="true">
+                    ›
+                  </span>
+                </Link>
+              </div>
+            </RevealOnScroll>
 
             {/* Article Cards */}
-            <div className="space-y-6">
-              {articles.map((article) => (
-                <article
-                  key={article.id}
-                  className="overflow-hidden rounded-2xl border border-[#27430D]/10 bg-[#FEFEFE]"
-                >
-                  <div className="grid md:grid-cols-[35%_1fr]">
-                    {/* Article Image */}
-                    <div className="relative min-h-60 overflow-hidden md:min-h-76.25">
-                      <Image
-                        src={article.image}
-                        alt={article.title}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 35vw"
-                      />
-                    </div>
+            {publishedArticles.length > 0 ? (
+              <div
+                className={
+                  shouldScroll
+                    ? `
+                        max-h-175
+                        space-y-5
+                        overflow-y-auto
+                        overscroll-auto
+                        pr-3
+                        touch-pan-y
 
-                    {/* Article Content */}
-                    <div className="flex flex-col justify-center px-6 py-7 sm:px-8 lg:px-9">
-                      <p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#687704]">
-                        ARTICLE
-                      </p>
+                        md:overscroll-contain
 
-                      <h3 className="max-w-2xl text-2xl font-bold leading-tight text-[#27430D] sm:text-[28px]">
-                        {article.title}
-                      </h3>
+                        [scrollbar-color:#687704_transparent]
+                        scrollbar-thin
 
-                      <p className="mt-4 max-w-2xl text-sm leading-7 text-[#7B886C]/75 sm:text-base">
-                        {article.excerpt}
-                      </p>
+                        [&::-webkit-scrollbar]:w-2
+                        [&::-webkit-scrollbar-track]:bg-transparent
 
-                      <div className="mt-4 flex items-center gap-3 text-sm text-[#7B886C]/50">
-                        <span>{article.date}</span>
-                        <span>·</span>
-                        <span>{article.readTime}</span>
-                      </div>
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        [&::-webkit-scrollbar-thumb]:bg-[#687704]/35
+                        [&::-webkit-scrollbar-thumb]:transition-colors
 
-                      <Link
-                        href="#"
-                        className="mt-5 inline-flex w-fit items-center gap-4 font-semibold text-[#27430D] transition-opacity hover:opacity-70"
+                        hover:[&::-webkit-scrollbar-thumb]:bg-[#687704]/65
+                      `
+                    : "space-y-5"
+                }
+              >
+                {publishedArticles.map(
+                  (article, index) => {
+                    const publishedDate =
+                      formatDate(
+                        article.published_at ??
+                          article.created_at,
+                      );
+
+                    const readingTime =
+                      getReadingTime(
+                        article.content,
+                      );
+
+                    return (
+                      <RevealOnScroll
+                        key={article.id}
+                        className={`
+                          translate-y-12
+                          opacity-0
+                          transition-all
+                          duration-700
+                          ease-[cubic-bezier(0.22,1,0.36,1)]
+                          data-[visible=true]:translate-y-0
+                          data-[visible=true]:opacity-100
+                          ${
+                            index === 1
+                              ? "delay-150"
+                              : ""
+                          }
+                        `}
                       >
-                        Read Article
-                        <span aria-hidden="true">›</span>
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                        <article className="group relative overflow-hidden">
+                          {/* Background */}
+                          <Image
+                            src={
+                              rectangleBackground
+                            }
+                            alt=""
+                            fill
+                            aria-hidden="true"
+                            className="pointer-events-none select-none object-fill"
+                            sizes="100vw"
+                          />
+
+                          <div className="relative z-10 grid gap-5 px-5 py-5 md:grid-cols-[48%_1fr] md:items-center md:px-7 md:py-6">
+                            {/* Article Image */}
+                            <div className="relative">
+                              <Link
+                                href={`/articles/${article.slug}`}
+                                className="relative block min-h-56 overflow-hidden md:min-h-64"
+                              >
+                                {article.cover_image_url ? (
+                                  <Image
+                                    src={
+                                      article.cover_image_url
+                                    }
+                                    alt={
+                                      article.title
+                                    }
+                                    fill
+                                    className="
+                                      object-cover
+                                      grayscale
+                                      transition-all
+                                      duration-700
+                                      ease-[cubic-bezier(0.22,1,0.36,1)]
+                                      group-hover:scale-[1.035]
+                                      group-hover:grayscale-35
+                                    "
+                                    sizes="(max-width: 768px) 100vw, 40vw"
+                                  />
+                                ) : (
+                                  <div className="flex h-full min-h-56 w-full items-center justify-center bg-[#F8F5EC] md:min-h-64">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687704]/50">
+                                      The Compass
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Overlay */}
+                                <div className="absolute inset-0 bg-[#27430D]/10 transition-colors duration-700 group-hover:bg-transparent" />
+
+                                {/* Shine */}
+                                <div
+                                  className="
+                                    pointer-events-none
+                                    absolute
+                                    inset-y-0
+                                    -left-1/2
+                                    w-1/3
+                                    -skew-x-12
+                                    bg-white/10
+                                    opacity-0
+                                    blur-xl
+                                    transition-all
+                                    duration-700
+                                    ease-out
+                                    group-hover:left-[120%]
+                                    group-hover:opacity-100
+                                  "
+                                />
+                              </Link>
+
+                              {/* Category */}
+                              <div
+                                className="
+                                  pointer-events-none
+                                  absolute
+                                  left-4
+                                  top-4
+                                  z-20
+                                  transition-transform
+                                  duration-500
+                                  ease-out
+                                  group-hover:-translate-y-1
+                                "
+                              >
+                                <div className="bg-white/95 px-3 py-1 text-xs font-medium text-[#27430D] shadow-sm">
+                                  {article.category ||
+                                    "Article"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Article Content */}
+                            <div className="flex min-w-0 flex-col justify-center overflow-hidden">
+                              <div
+                                className="
+                                  translate-y-4
+                                  transition-transform
+                                  duration-500
+                                  ease-[cubic-bezier(0.22,1,0.36,1)]
+                                  group-hover:translate-y-0
+                                "
+                              >
+                                {/* Title */}
+                                <Link
+                                  href={`/articles/${article.slug}`}
+                                >
+                                  <h3
+                                    className="
+                                      max-w-2xl
+                                      text-2xl
+                                      font-bold
+                                      leading-tight
+                                      text-[#27430D]
+                                      transition-colors
+                                      duration-300
+                                      group-hover:text-[#687704]
+                                      sm:text-[28px]
+                                    "
+                                  >
+                                    {
+                                      article.title
+                                    }
+                                  </h3>
+                                </Link>
+
+                                {/* Excerpt */}
+                                {article.excerpt && (
+                                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#7B886C]/80 sm:text-base">
+                                    {
+                                      article.excerpt
+                                    }
+                                  </p>
+                                )}
+
+                                {/* Highlight */}
+                                <div className="mt-4 w-full">
+                                  <div
+                                    className="
+                                      relative
+                                      flex
+                                      h-7
+                                      w-full
+                                      max-w-105
+                                      items-center
+                                      transition-transform
+                                      duration-500
+                                      ease-[cubic-bezier(0.22,1,0.36,1)]
+                                      group-hover:-translate-y-0.5
+                                    "
+                                  >
+                                    <Image
+                                      src={
+                                        highlightBg
+                                      }
+                                      alt=""
+                                      fill
+                                      aria-hidden="true"
+                                      className="pointer-events-none select-none object-fill"
+                                      sizes="420px"
+                                    />
+
+                                    <div className="relative z-10 flex h-full w-full items-center justify-between px-5 text-xs font-semibold text-white sm:text-sm">
+                                      <span className="truncate pr-4">
+                                        {article.author_name ||
+                                          "The Compass"}
+                                      </span>
+
+                                      <span className="shrink-0">
+                                        {
+                                          readingTime
+                                        }{" "}
+                                        min read
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {publishedDate && (
+                                    <p className="mt-2 text-sm text-[#7B886C]/70">
+                                      {
+                                        publishedDate
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Read Article */}
+                                <div className="mt-4 min-h-7 overflow-hidden">
+                                  <Link
+                                    href={`/articles/${article.slug}`}
+                                    className="
+                                      group/read
+                                      pointer-events-none
+                                      relative
+                                      inline-flex
+                                      translate-y-3
+                                      items-center
+                                      gap-3
+                                      pb-1
+                                      font-essays
+                                      text-sm
+                                      font-medium
+                                      text-[#27430D]
+                                      opacity-0
+                                      transition-all
+                                      duration-500
+                                      ease-[cubic-bezier(0.22,1,0.36,1)]
+
+                                      after:absolute
+                                      after:bottom-0
+                                      after:left-0
+                                      after:h-px
+                                      after:w-full
+                                      after:origin-left
+                                      after:scale-x-0
+                                      after:bg-[#27430D]
+                                      after:transition-transform
+                                      after:duration-300
+                                      after:ease-out
+
+                                      group-hover:pointer-events-auto
+                                      group-hover:translate-y-0
+                                      group-hover:opacity-100
+
+                                      hover:after:scale-x-100
+
+                                      md:text-[17px]
+                                    "
+                                  >
+                                    Read Article
+
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="18"
+                                      height="18"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="1.8"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="transition-transform duration-300 group-hover/read:translate-x-1.5"
+                                      aria-hidden="true"
+                                    >
+                                      <path d="M5 12h14" />
+                                      <path d="m12 5 7 7-7 7" />
+                                    </svg>
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      </RevealOnScroll>
+                    );
+                  },
+                )}
+              </div>
+            ) : (
+              <RevealOnScroll
+                className="
+                  translate-y-10
+                  opacity-0
+                  transition-all
+                  duration-700
+                  data-[visible=true]:translate-y-0
+                  data-[visible=true]:opacity-100
+                "
+              >
+                <div className="border border-[#27430D]/10 bg-[#FEFEFE] px-6 py-12 text-center">
+                  <p className="text-sm text-[#523A23]/50">
+                    More articles are coming soon.
+                  </p>
+                </div>
+              </RevealOnScroll>
+            )}
 
             {/* Mobile View All */}
-            <Link
-              href="/articles"
-              className="mt-7 flex items-center justify-center gap-3 rounded-xl border border-[#27430D]/10 bg-[#FEFEFE] py-4 text-sm font-semibold text-[#27430D] sm:hidden"
+            <RevealOnScroll
+              className="
+                translate-y-6
+                opacity-0
+                transition-all
+                delay-100
+                duration-700
+                data-[visible=true]:translate-y-0
+                data-[visible=true]:opacity-100
+              "
             >
-              View all articles
-              <span aria-hidden="true">›</span>
-            </Link>
+              <Link
+                href="/articles"
+                className="mt-7 flex items-center justify-center gap-3 border border-[#27430D]/10 bg-[#FEFEFE] py-4 text-sm font-semibold text-[#27430D] sm:hidden"
+              >
+                View all articles
+
+                <span aria-hidden="true">
+                  ›
+                </span>
+              </Link>
+            </RevealOnScroll>
           </div>
 
-          {/* RIGHT SIDE */}
-          <aside className="lg:pt-20.25">
-            <div className="rounded-2xl border border-[#27430D]/10 bg-[#FEFEFE]/70 p-6">
-              {/* Fun Fact Header */}
-              <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#687704]/30 bg-[#F6F1EA]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-[#687704]"
-                  >
-                    <path
-                      d="M9 18h6M10 22h4M8.5 15.5C6.96 14.42 6 12.64 6 10.5a6 6 0 1112 0c0 2.14-.96 3.92-2.5 5"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-
-                <p className="text-sm font-bold tracking-[0.14em] text-[#27430D]">
-                  WEEKLY FUN FACT
-                </p>
-              </div>
-
-              {/* Fun Fact Placeholder */}
-              <div className="flex aspect-4/3 items-center justify-center overflow-hidden rounded-xl bg-[#F6F1EA]">
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687704]">
-                    Fun Fact Image
-                  </p>
-
-                  <p className="mt-1 text-sm text-[#523A23]/50">
-                    Placeholder
-                  </p>
-                </div>
-              </div>
-
-              {/* Fun Fact Content */}
-              <div className="mt-6">
-                <p className="text-xs font-bold tracking-[0.2em] text-[#687704]">
-                  FUN FACT #1
-                </p>
-
-                <h3 className="mt-3 text-2xl font-bold text-[#27430D]">
-                  Fun Fact Title
-                </h3>
-
-                <p className="mt-3 text-sm text-[#523A23]/50">
-                  Sep 12, 2026
-                </p>
-              </div>
-
-              <Link
-                href="#"
-                className="mt-7 flex items-center justify-between rounded-xl border border-[#687704]/30 bg-[#F6F1EA] px-5 py-4 font-semibold text-[#27430D] transition-colors hover:bg-[#687704]/10"
-              >
-                View Story
-                <span aria-hidden="true">→</span>
-              </Link>
-            </div>
-          </aside>
+          {/* Weekly Fun Fact */}
+          <WeeklyFunFact />
         </div>
       </div>
     </section>

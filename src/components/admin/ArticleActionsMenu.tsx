@@ -12,6 +12,8 @@ import {
 
 import { deleteArticle } from "@/app/admin/articles/actions";
 
+import ActionButton from "@/components/admin/ActionButton";
+
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
@@ -34,31 +36,46 @@ export default function ArticleActionsMenu({
   articleId,
   articleTitle,
 }: ArticleActionsMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const [showDeleteModal, setShowDeleteModal] =
+  const [isOpen, setIsOpen] =
     useState(false);
 
-  const [isDeleting, setIsDeleting] =
-    useState(false);
+  const [
+    showDeleteModal,
+    setShowDeleteModal,
+  ] = useState(false);
 
-  const [deleteError, setDeleteError] =
-    useState("");
+  const [
+    isDeleting,
+    setIsDeleting,
+  ] = useState(false);
 
-  const [menuPosition, setMenuPosition] =
-    useState<MenuPosition>({
-      top: 0,
-      left: 0,
-    });
+  const [
+    deleteError,
+    setDeleteError,
+  ] = useState("");
+
+  const [
+    menuPosition,
+    setMenuPosition,
+  ] = useState<MenuPosition>({
+    top: 0,
+    left: 0,
+  });
 
   const buttonRef =
-    useRef<HTMLButtonElement>(null);
+    useRef<HTMLButtonElement>(
+      null,
+    );
 
   const menuRef =
-    useRef<HTMLDivElement>(null);
+    useRef<HTMLDivElement>(
+      null,
+    );
 
   const deleteButtonRef =
-    useRef<HTMLButtonElement>(null);
+    useRef<HTMLButtonElement>(
+      null,
+    );
 
   function updateMenuPosition() {
     if (!buttonRef.current) {
@@ -74,15 +91,21 @@ export default function ArticleActionsMenu({
     const menuGap = 6;
 
     let left =
-      buttonRect.right - menuWidth;
+      buttonRect.right -
+      menuWidth;
 
-    if (left < viewportPadding) {
-      left = viewportPadding;
+    if (
+      left <
+      viewportPadding
+    ) {
+      left =
+        viewportPadding;
     }
 
     if (
       left + menuWidth >
-      window.innerWidth - viewportPadding
+      window.innerWidth -
+        viewportPadding
     ) {
       left =
         window.innerWidth -
@@ -91,7 +114,8 @@ export default function ArticleActionsMenu({
     }
 
     let top =
-      buttonRect.bottom + menuGap;
+      buttonRect.bottom +
+      menuGap;
 
     const spaceBelow =
       window.innerHeight -
@@ -103,8 +127,10 @@ export default function ArticleActionsMenu({
       viewportPadding;
 
     if (
-      spaceBelow < menuHeight &&
-      spaceAbove > menuHeight
+      spaceBelow <
+        menuHeight &&
+      spaceAbove >
+        menuHeight
     ) {
       top =
         buttonRect.top -
@@ -119,17 +145,32 @@ export default function ArticleActionsMenu({
   }
 
   function toggleMenu() {
+    if (isDeleting) {
+      return;
+    }
+
     if (!isOpen) {
       updateMenuPosition();
     }
 
-    setIsOpen((current) => !current);
+    setIsOpen(
+      (current) =>
+        !current,
+    );
   }
 
   function openDeleteModal() {
+    if (isDeleting) {
+      return;
+    }
+
     setIsOpen(false);
+
     setDeleteError("");
-    setShowDeleteModal(true);
+
+    setShowDeleteModal(
+      true,
+    );
   }
 
   function closeDeleteModal() {
@@ -137,7 +178,10 @@ export default function ArticleActionsMenu({
       return;
     }
 
-    setShowDeleteModal(false);
+    setShowDeleteModal(
+      false,
+    );
+
     setDeleteError("");
   }
 
@@ -147,24 +191,33 @@ export default function ArticleActionsMenu({
     }
 
     setIsDeleting(true);
+
     setDeleteError("");
 
     try {
-      await deleteArticle(articleId);
+      await deleteArticle(
+        articleId,
+      );
 
       sessionStorage.setItem(
         DELETE_STORAGE_KEY,
         JSON.stringify({
-          title: articleTitle,
-          timestamp: Date.now(),
+          title:
+            articleTitle,
+          timestamp:
+            Date.now(),
         }),
       );
 
       window.dispatchEvent(
-        new Event("article-deleted"),
+        new Event(
+          "article-deleted",
+        ),
       );
 
-      setShowDeleteModal(false);
+      setShowDeleteModal(
+        false,
+      );
     } catch (error) {
       console.error(
         "Failed to delete article:",
@@ -179,6 +232,13 @@ export default function ArticleActionsMenu({
     }
   }
 
+  /*
+   * Close the dropdown when the
+   * admin clicks somewhere else.
+   *
+   * Recalculate position whenever
+   * the viewport changes.
+   */
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -191,10 +251,14 @@ export default function ArticleActionsMenu({
         event.target as Node;
 
       const clickedButton =
-        buttonRef.current?.contains(target);
+        buttonRef.current?.contains(
+          target,
+        );
 
       const clickedMenu =
-        menuRef.current?.contains(target);
+        menuRef.current?.contains(
+          target,
+        );
 
       if (
         !clickedButton &&
@@ -243,25 +307,45 @@ export default function ArticleActionsMenu({
     };
   }, [isOpen]);
 
+  /*
+   * Escape closes the currently
+   * open menu or modal.
+   *
+   * While deletion is happening,
+   * the modal cannot be dismissed.
+   */
   useEffect(() => {
-    if (!isOpen && !showDeleteModal) {
+    if (
+      !isOpen &&
+      !showDeleteModal
+    ) {
       return;
     }
 
     function handleEscape(
       event: KeyboardEvent,
     ) {
-      if (event.key !== "Escape") {
+      if (
+        event.key !==
+        "Escape"
+      ) {
         return;
       }
 
-      if (showDeleteModal) {
-        if (!isDeleting) {
-          setShowDeleteModal(false);
-          setDeleteError("");
+      if (isDeleting) {
+        return;
+      }
 
-          buttonRef.current?.focus();
-        }
+      if (
+        showDeleteModal
+      ) {
+        setShowDeleteModal(
+          false,
+        );
+
+        setDeleteError("");
+
+        buttonRef.current?.focus();
 
         return;
       }
@@ -290,20 +374,32 @@ export default function ArticleActionsMenu({
     isDeleting,
   ]);
 
+  /*
+   * Focus the destructive action
+   * when the confirmation dialog opens.
+   */
   useEffect(() => {
-    if (!showDeleteModal) {
+    if (
+      !showDeleteModal
+    ) {
       return;
     }
 
     const frame =
-      requestAnimationFrame(() => {
-        deleteButtonRef.current?.focus();
-      });
+      requestAnimationFrame(
+        () => {
+          deleteButtonRef.current?.focus();
+        },
+      );
 
     return () => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(
+        frame,
+      );
     };
-  }, [showDeleteModal]);
+  }, [
+    showDeleteModal,
+  ]);
 
   return (
     <>
@@ -311,23 +407,37 @@ export default function ArticleActionsMenu({
       <button
         ref={buttonRef}
         type="button"
-        onClick={toggleMenu}
-        disabled={isDeleting}
+        onClick={
+          toggleMenu
+        }
+        disabled={
+          isDeleting
+        }
         aria-label={`Actions for ${articleTitle}`}
         aria-haspopup="menu"
-        aria-expanded={isOpen}
+        aria-expanded={
+          isOpen
+        }
         className={`
           ${jakarta.className}
-          inline-flex h-9 w-9
-          items-center justify-center
+
+          inline-flex
+          h-9 w-9
+          items-center
+          justify-center
           rounded-lg
+
           text-[#523A23]/55
+
           transition
+
           hover:bg-[#F6F1EA]
           hover:text-[#27430D]
+
           focus:outline-none
           focus:ring-2
           focus:ring-[#687704]/20
+
           disabled:cursor-not-allowed
           disabled:opacity-40
         `}
@@ -338,32 +448,59 @@ export default function ArticleActionsMenu({
           className="h-5 w-5"
           aria-hidden="true"
         >
-          <circle cx="12" cy="5" r="1.6" />
-          <circle cx="12" cy="12" r="1.6" />
-          <circle cx="12" cy="19" r="1.6" />
+          <circle
+            cx="12"
+            cy="5"
+            r="1.6"
+          />
+
+          <circle
+            cx="12"
+            cy="12"
+            r="1.6"
+          />
+
+          <circle
+            cx="12"
+            cy="19"
+            r="1.6"
+          />
         </svg>
       </button>
 
       {/* Edit / Delete Menu */}
       {isOpen &&
-        typeof document !== "undefined" &&
+        typeof document !==
+          "undefined" &&
         createPortal(
           <div
-            ref={menuRef}
+            ref={
+              menuRef
+            }
             role="menu"
             style={{
-              top: menuPosition.top,
-              left: menuPosition.left,
+              top:
+                menuPosition.top,
+              left:
+                menuPosition.left,
             }}
             className={`
               ${jakarta.className}
-              fixed z-9999
+
+              fixed
+              z-9999
+
               w-36
               overflow-hidden
+
               rounded-xl
-              border border-[#27430D]/10
+              border
+              border-[#27430D]/10
+
               bg-white
+
               p-1.5
+
               shadow-[0_10px_35px_rgba(39,67,13,0.16)]
             `}
           >
@@ -371,17 +508,27 @@ export default function ArticleActionsMenu({
               href={`/admin/articles/${articleId}`}
               role="menuitem"
               onClick={() =>
-                setIsOpen(false)
+                setIsOpen(
+                  false,
+                )
               }
               className="
-                flex w-full
+                flex
+                w-full
                 items-center
+
                 rounded-lg
-                px-3 py-2.5
+
+                px-3
+                py-2.5
+
                 text-left
-                text-sm font-medium
+                text-sm
+                font-medium
                 text-[#27430D]
+
                 transition
+
                 hover:bg-[#F6F1EA]
               "
             >
@@ -391,17 +538,33 @@ export default function ArticleActionsMenu({
             <button
               type="button"
               role="menuitem"
-              onClick={openDeleteModal}
+              onClick={
+                openDeleteModal
+              }
+              disabled={
+                isDeleting
+              }
               className="
-                flex w-full
+                flex
+                w-full
                 items-center
+
                 rounded-lg
-                px-3 py-2.5
+
+                px-3
+                py-2.5
+
                 text-left
-                text-sm font-medium
+                text-sm
+                font-medium
                 text-red-600
+
                 transition
+
                 hover:bg-red-50
+
+                disabled:cursor-not-allowed
+                disabled:opacity-50
               "
             >
               Delete
@@ -412,18 +575,30 @@ export default function ArticleActionsMenu({
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal &&
-        typeof document !== "undefined" &&
+        typeof document !==
+          "undefined" &&
         createPortal(
           <div
             className={`
               ${jakarta.className}
-              fixed inset-0 z-10000
-              flex items-center justify-center
+
+              fixed
+              inset-0
+              z-10000
+
+              flex
+              items-center
+              justify-center
+
               bg-black/35
+
               px-4
+
               backdrop-blur-[2px]
             `}
-            onMouseDown={(event) => {
+            onMouseDown={(
+              event,
+            ) => {
               if (
                 event.target ===
                 event.currentTarget
@@ -437,13 +612,24 @@ export default function ArticleActionsMenu({
               aria-modal="true"
               aria-labelledby="delete-article-title"
               aria-describedby="delete-article-description"
+              aria-busy={
+                isDeleting
+              }
               className="
-                w-full max-w-md
+                w-full
+                max-w-md
+
                 rounded-2xl
-                border border-[#27430D]/10
+
+                border
+                border-[#27430D]/10
+
                 bg-white
+
                 p-6
+
                 shadow-[0_24px_70px_rgba(39,67,13,0.22)]
+
                 sm:p-7
               "
             >
@@ -452,80 +638,92 @@ export default function ArticleActionsMenu({
                   id="delete-article-title"
                   className="text-xl font-bold tracking-tight text-[#27430D]"
                 >
-                  Delete article?
+                  {isDeleting
+                    ? "Deleting article…"
+                    : "Delete article?"}
                 </h2>
 
                 <p
                   id="delete-article-description"
                   className="mt-2 text-sm leading-6 text-[#523A23]/60"
                 >
-                  You&apos;re about to
-                  permanently delete{" "}
-                  <span className="font-semibold text-[#523A23]">
-                    “{articleTitle}”
-                  </span>
-                  . This action cannot be
-                  undone.
+                  {isDeleting ? (
+                    <>
+                      Please wait
+                      while{" "}
+                      <span className="font-semibold text-[#523A23]">
+                        “
+                        {
+                          articleTitle
+                        }
+                        ”
+                      </span>{" "}
+                      is being
+                      deleted.
+                    </>
+                  ) : (
+                    <>
+                      You&apos;re
+                      about to
+                      permanently
+                      delete{" "}
+                      <span className="font-semibold text-[#523A23]">
+                        “
+                        {
+                          articleTitle
+                        }
+                        ”
+                      </span>
+                      . This action
+                      cannot be
+                      undone.
+                    </>
+                  )}
                 </p>
               </div>
 
+              {/* Delete Error */}
               {deleteError && (
-                <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {deleteError}
+                <div
+                  role="alert"
+                  className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                >
+                  {
+                    deleteError
+                  }
                 </div>
               )}
 
+              {/* Modal Actions */}
               <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
+                <ActionButton
+                  variant="secondary"
+                  disabled={
+                    isDeleting
+                  }
                   onClick={
                     closeDeleteModal
                   }
-                  disabled={isDeleting}
-                  className="
-                    inline-flex h-11
-                    items-center justify-center
-                    rounded-xl
-                    border border-[#27430D]/15
-                    bg-white
-                    px-5
-                    text-sm font-semibold
-                    text-[#27430D]
-                    transition
-                    hover:bg-[#F6F1EA]
-                    disabled:cursor-not-allowed
-                    disabled:opacity-50
-                  "
                 >
                   Cancel
-                </button>
+                </ActionButton>
 
-                <button
-                  ref={deleteButtonRef}
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="
-                    inline-flex h-11
-                    items-center justify-center
-                    rounded-xl
-                    bg-red-600
-                    px-5
-                    text-sm font-semibold
-                    text-white
-                    transition
-                    hover:bg-red-700
-                    focus:outline-none
-                    focus:ring-4
-                    focus:ring-red-600/15
-                    disabled:cursor-not-allowed
-                    disabled:opacity-60
-                  "
+                <ActionButton
+                  ref={
+                    deleteButtonRef
+                  }
+                  variant="danger"
+                  loading={
+                    isDeleting
+                  }
+                  loadingText="Deleting…"
+                  onClick={
+                    handleDelete
+                  }
+                  className="min-w-36"
                 >
-                  {isDeleting
-                    ? "Deleting..."
-                    : "Delete Article"}
-                </button>
+                  Delete Article
+                </ActionButton>
               </div>
             </div>
           </div>,

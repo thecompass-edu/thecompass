@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+
 import localFont from "next/font/local";
+
+import SiteVisitTracker from "@/components/analytics/SiteVisitTracker";
+
 import "./globals.css";
 
 const essays = localFont({
@@ -34,8 +38,10 @@ export const metadata: Metadata = {
     default: "The Compass | Financial Literacy for Young People",
     template: "%s | The Compass",
   },
+
   description:
     "The Compass is a youth organization making financial literacy accessible through education, real-world tools, and community.",
+
   keywords: [
     "financial literacy",
     "financial education",
@@ -44,9 +50,13 @@ export const metadata: Metadata = {
     "youth financial education",
     "financial education Indonesia",
   ],
+
   authors: [{ name: "The Compass" }],
+
   creator: "The Compass",
+
   publisher: "The Compass",
+
   robots: {
     index: true,
     follow: true,
@@ -63,7 +73,9 @@ export default function RootLayout({
       lang="en"
       className={`${essays.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
+        <SiteVisitTracker />
+
         {children}
       </body>
     </html>
