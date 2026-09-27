@@ -4,6 +4,7 @@ import HeroSection from "@/sections/home/HeroSection";
 import { TodayFeatured } from "@/sections/home/TodayFeatured";
 import PurposeSection from "@/sections/home/PurposeSection";
 import RecentArticles from "@/sections/home/RecentArticles";
+import Footer from "@/components/home/Footer";
 
 export default function Home() {
   return (
@@ -17,6 +18,8 @@ export default function Home() {
       <RecentArticles />
 
       <PurposeSection />
+
+      <Footer />
     </main>
   );
 }

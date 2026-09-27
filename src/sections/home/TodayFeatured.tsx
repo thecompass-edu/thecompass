@@ -152,7 +152,7 @@ export const TodayFeatured = async () => {
             Today&apos;s Featured Read
           </p>
 
-          {/* LEFT — IMAGE */}
+          {/* Left Image */}
           <div className="featured-image-enter relative h-52 w-full overflow-visible md:h-auto md:min-h-107.5 md:w-[57%]">
             {/* Category Paper */}
             <div className="absolute -left-8 top-4 z-30 md:-left-14 md:top-8">
@@ -201,7 +201,9 @@ export const TodayFeatured = async () => {
               <div
                 className="
                   pointer-events-none
-                  absolute inset-y-0 -left-1/2
+                  absolute
+                  inset-y-0
+                  -left-1/2
                   w-1/3
                   -skew-x-12
                   bg-white/10
@@ -217,15 +219,19 @@ export const TodayFeatured = async () => {
             </Link>
           </div>
 
-          {/* RIGHT — CONTENT */}
+          {/* Right Content */}
           <div className="featured-content-enter w-full md:w-[43%]">
             <div
               className="
-                flex h-full w-full flex-col justify-center
+                flex
+                h-full
+                w-full
+                flex-col
+                justify-center
                 transition-transform
                 duration-500
                 ease-[cubic-bezier(0.22,1,0.36,1)]
-                group-hover:-translate-y-1
+                md:group-hover:-translate-y-1
               "
             >
               <p className="hidden text-[14px] font-essays uppercase tracking-[0.2em] text-white/75 md:block">
@@ -266,6 +272,7 @@ export const TodayFeatured = async () => {
                 <span>{readingTime} min read</span>
               </div>
 
+              {/* Read Article */}
               <div className="mt-8 flex min-h-8.5 justify-start">
                 <Link
                   href={`/articles/${article.slug}`}
@@ -273,7 +280,7 @@ export const TodayFeatured = async () => {
                     group/read
                     relative
                     inline-flex
-                    translate-y-2
+                    translate-y-0
                     items-center
                     gap-3
                     pb-1
@@ -281,14 +288,18 @@ export const TodayFeatured = async () => {
                     font-medium
                     font-essays
                     text-white
-                    opacity-0
-                    pointer-events-none
+                    opacity-100
+                    pointer-events-auto
                     transition-all
                     duration-300
                     ease-out
-                    group-hover:translate-y-0
-                    group-hover:opacity-100
-                    group-hover:pointer-events-auto
+
+                    md:translate-y-2
+                    md:opacity-0
+                    md:pointer-events-none
+                    md:group-hover:translate-y-0
+                    md:group-hover:opacity-100
+                    md:group-hover:pointer-events-auto
                     md:text-[18px]
                   "
                 >

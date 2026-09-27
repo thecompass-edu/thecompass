@@ -213,7 +213,7 @@ function TornPaperEdge() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute bottom-0 left-0 z-40 h-10 w-full overflow-hidden bg-[#F3F0E8]"
+      className="pointer-events-none absolute -bottom-px left-0 z-40 h-11 w-full overflow-hidden bg-[#F8F5EC]"
       style={{
         clipPath: `
           polygon(

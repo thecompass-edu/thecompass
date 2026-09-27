@@ -1,14 +1,18 @@
 "use client";
 
 import {
+  type MouseEvent,
   useEffect,
   useState,
 } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
+  const pathname = usePathname();
+
   const [isScrolled, setIsScrolled] =
     useState(false);
 
@@ -57,14 +61,127 @@ export default function Navbar() {
     setIsMenuOpen(false);
   }
 
+  function scrollToSection(
+    sectionId: string,
+  ) {
+    const section =
+      document.getElementById(sectionId);
+
+    if (!section) {
+      return;
+    }
+
+    const navbarOffset = 82;
+
+    const sectionTop =
+      section.getBoundingClientRect().top +
+      window.scrollY -
+      navbarOffset;
+
+    window.scrollTo({
+      top: sectionTop,
+      behavior: "smooth",
+    });
+  }
+
+  function handleHomeClick(
+    event: MouseEvent<HTMLAnchorElement>,
+  ) {
+    closeMenu();
+
+    if (pathname !== "/") {
+      return;
+    }
+
+    event.preventDefault();
+
+    window.history.replaceState(
+      null,
+      "",
+      "/",
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function handleSectionClick(
+    event: MouseEvent<HTMLAnchorElement>,
+    sectionId: string,
+  ) {
+    closeMenu();
+
+    if (pathname !== "/") {
+      return;
+    }
+
+    event.preventDefault();
+
+    window.history.replaceState(
+      null,
+      "",
+      `#${sectionId}`,
+    );
+
+    scrollToSection(sectionId);
+  }
+
+  const desktopLinkClassName = `
+    group
+    relative
+    py-2
+    transition-colors
+    duration-300
+    hover:text-[#687704]
+
+    after:absolute
+    after:-bottom-0.5
+    after:left-0
+    after:h-px
+    after:w-full
+    after:origin-left
+    after:scale-x-0
+    after:bg-[#687704]
+    after:transition-transform
+    after:duration-300
+    after:ease-out
+    hover:after:scale-x-100
+  `;
+
+  const mobileLinkClassName = `
+    group
+    relative
+    flex
+    w-full
+    items-center
+    rounded-2xl
+    px-4
+    py-4
+    font-essays
+    text-[22px]
+    font-semibold
+    text-[#27430D]
+    transition-all
+    duration-300
+    hover:bg-[#27430D]/6
+    hover:text-[#687704]
+  `;
+
   return (
     <>
       <header
         className={`
-          sticky top-0 z-50 w-full
+          fixed
+          top-0
+          z-50
+          w-full
           transition-[padding,background-color]
           duration-700
           ease-[cubic-bezier(0.22,1,0.36,1)]
+
+          md:sticky
 
           md:${
             isScrolled
@@ -75,23 +192,23 @@ export default function Navbar() {
       >
         {/* Mobile Navbar */}
         <nav className="border-b border-[#27430D]/8 bg-[#F8F5EC] md:hidden">
-          <div className="flex min-h-24 items-center justify-between px-5">
+          <div className="flex min-h-20 items-center justify-between px-5">
             {/* Brand */}
             <Link
               href="/"
-              onClick={closeMenu}
-              className="group flex items-center gap-4 text-[#27430D]"
+              onClick={handleHomeClick}
+              className="group flex items-center gap-3 text-[#27430D]"
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#27430D]/10 bg-white shadow-sm">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#27430D]/10 bg-white shadow-sm">
                 <Image
                   src="/images/logo.svg"
                   alt="The Compass logo"
-                  width={44}
-                  height={44}
+                  width={32}
+                  height={32}
                   priority
                   className="
-                    h-11
-                    w-11
+                    h-8
+                    w-8
                     object-contain
                     transition-transform
                     duration-700
@@ -101,7 +218,7 @@ export default function Navbar() {
                 />
               </div>
 
-              <span className="font-essays text-xl font-semibold tracking-wide">
+              <span className="font-essays text-lg font-semibold tracking-wide">
                 THE COMPASS
               </span>
             </Link>
@@ -120,13 +237,13 @@ export default function Navbar() {
                   : "Open navigation menu"
               }
               aria-expanded={isMenuOpen}
-              className="relative flex h-12 w-12 items-center justify-center text-[#27430D]"
+              className="relative flex h-10 w-10 items-center justify-center text-[#27430D]"
             >
               <span
                 className={`
                   absolute
                   h-0.5
-                  w-7
+                  w-6
                   rounded-full
                   bg-current
                   transition-all
@@ -134,7 +251,7 @@ export default function Navbar() {
                   ${
                     isMenuOpen
                       ? "translate-y-0 rotate-45"
-                      : "-translate-y-2"
+                      : "-translate-y-1.5"
                   }
                 `}
               />
@@ -143,7 +260,7 @@ export default function Navbar() {
                 className={`
                   absolute
                   h-0.5
-                  w-7
+                  w-6
                   rounded-full
                   bg-current
                   transition-all
@@ -160,7 +277,7 @@ export default function Navbar() {
                 className={`
                   absolute
                   h-0.5
-                  w-7
+                  w-6
                   rounded-full
                   bg-current
                   transition-all
@@ -168,7 +285,7 @@ export default function Navbar() {
                   ${
                     isMenuOpen
                       ? "translate-y-0 -rotate-45"
-                      : "translate-y-2"
+                      : "translate-y-1.5"
                   }
                 `}
               />
@@ -179,7 +296,9 @@ export default function Navbar() {
         {/* Desktop Navbar */}
         <nav
           className={`
-            mx-auto hidden w-full
+            mx-auto
+            hidden
+            w-full
             transition-[max-width,border-radius,background-color,border-color,box-shadow,backdrop-filter]
             duration-700
             ease-[cubic-bezier(0.22,1,0.36,1)]
@@ -228,6 +347,7 @@ export default function Navbar() {
             {/* Brand */}
             <Link
               href="/"
+              onClick={handleHomeClick}
               className="group flex shrink-0 items-center gap-2.5 text-[#27430D]"
             >
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm">
@@ -258,28 +378,41 @@ export default function Navbar() {
             <div className="flex items-center gap-9 text-[16px] font-semibold text-[#27430D] lg:gap-11">
               <Link
                 href="/"
-                className="transition-colors duration-300 hover:text-[#687704]"
+                onClick={handleHomeClick}
+                className={desktopLinkClassName}
               >
                 Home
               </Link>
 
               <Link
                 href="/articles"
-                className="transition-colors duration-300 hover:text-[#687704]"
+                className={desktopLinkClassName}
               >
                 Articles
               </Link>
 
               <Link
-                href="/#about"
-                className="transition-colors duration-300 hover:text-[#687704]"
+                href="/#purpose"
+                onClick={(event) =>
+                  handleSectionClick(
+                    event,
+                    "purpose",
+                  )
+                }
+                className={desktopLinkClassName}
               >
                 About
               </Link>
 
               <Link
-                href="/#contact"
-                className="transition-colors duration-300 hover:text-[#687704]"
+                href="/#footer"
+                onClick={(event) =>
+                  handleSectionClick(
+                    event,
+                    "footer",
+                  )
+                }
+                className={desktopLinkClassName}
               >
                 Contact
               </Link>
@@ -288,107 +421,276 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {/* Mobile Menu */}
-      <div
+      {/* Mobile Menu Backdrop */}
+      <button
+        type="button"
+        aria-label="Close navigation menu"
+        onClick={closeMenu}
         className={`
           fixed
-          inset-x-0
-          bottom-0
-          top-24
-          z-40
-          bg-[#F8F5EC]
-          transition-all
+          inset-0
+          z-50
+          bg-black/35
+          backdrop-blur-[2px]
+          transition-opacity
           duration-500
           ease-[cubic-bezier(0.22,1,0.36,1)]
           md:hidden
-
           ${
             isMenuOpen
-              ? "pointer-events-auto translate-y-0 opacity-100"
-              : "pointer-events-none -translate-y-5 opacity-0"
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none opacity-0"
+          }
+        `}
+      />
+
+      {/* Mobile Side Drawer */}
+      <aside
+        className={`
+          fixed
+          bottom-0
+          left-0
+          top-0
+          z-60
+          flex
+          w-[84%]
+          max-w-90
+          flex-col
+          bg-[#F8F5EC]
+          shadow-[20px_0_60px_rgba(39,67,13,0.18)]
+          transition-transform
+          duration-500
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+          md:hidden
+          ${
+            isMenuOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
           }
         `}
       >
-        <nav className="flex h-full flex-col px-8 pb-10 pt-10">
-          <div className="flex flex-1 flex-col justify-start gap-10">
+        {/* Drawer Header */}
+        <div className="flex min-h-20 items-center justify-between border-b border-[#27430D]/10 px-5">
+          <Link
+            href="/"
+            onClick={handleHomeClick}
+            className="group flex items-center gap-3 text-[#27430D]"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+              <Image
+                src="/images/logo.svg"
+                alt="The Compass logo"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+              />
+            </div>
+
+            <span className="font-essays text-base font-semibold tracking-wide">
+              THE COMPASS
+            </span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={closeMenu}
+            aria-label="Close navigation menu"
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              text-[#27430D]
+              transition-colors
+              duration-300
+              hover:bg-[#27430D]/5
+            "
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Drawer Navigation */}
+        <nav className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
+          <div className="space-y-1">
             <Link
               href="/"
-              onClick={closeMenu}
-              className="
-                w-fit
-                font-essays
-                text-5xl
-                font-semibold
-                leading-none
-                text-[#27430D]
-                transition-all
-                duration-300
-                hover:translate-x-2
-                hover:text-[#687704]
-              "
+              onClick={handleHomeClick}
+              className={mobileLinkClassName}
             >
+              <span className="mr-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#27430D]/6">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m3 11 9-8 9 8" />
+                  <path d="M5 10v10h14V10" />
+                </svg>
+              </span>
+
               Home
             </Link>
 
             <Link
               href="/articles"
               onClick={closeMenu}
-              className="
-                w-fit
-                font-essays
-                text-5xl
-                font-semibold
-                leading-none
-                text-[#27430D]
-                transition-all
-                duration-300
-                hover:translate-x-2
-                hover:text-[#687704]
-              "
+              className={mobileLinkClassName}
             >
+              <span className="mr-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#27430D]/6">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 5h16" />
+                  <path d="M4 9h16" />
+                  <path d="M4 13h10" />
+                  <path d="M4 17h10" />
+                </svg>
+              </span>
+
               Articles
             </Link>
 
             <Link
-              href="/#about"
-              onClick={closeMenu}
-              className="
-                w-fit
-                font-essays
-                text-5xl
-                font-semibold
-                leading-none
-                text-[#27430D]
-                transition-all
-                duration-300
-                hover:translate-x-2
-                hover:text-[#687704]
-              "
+              href="/#purpose"
+              onClick={(event) =>
+                handleSectionClick(
+                  event,
+                  "purpose",
+                )
+              }
+              className={mobileLinkClassName}
             >
+              <span className="mr-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#27430D]/6">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                  />
+                  <path d="m14.8 9.2-2 5.6-5.6 2 2-5.6 5.6-2Z" />
+                </svg>
+              </span>
+
               About
             </Link>
 
             <Link
-              href="/#contact"
-              onClick={closeMenu}
-              className="
-                w-fit
-                font-essays
-                text-5xl
-                font-semibold
-                leading-none
-                text-[#27430D]
-                transition-all
-                duration-300
-                hover:translate-x-2
-                hover:text-[#687704]
-              "
+              href="/#footer"
+              onClick={(event) =>
+                handleSectionClick(
+                  event,
+                  "footer",
+                )
+              }
+              className={mobileLinkClassName}
             >
+              <span className="mr-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#27430D]/6">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect
+                    width="18"
+                    height="14"
+                    x="3"
+                    y="5"
+                    rx="2"
+                  />
+                  <path d="m3 7 9 6 9-6" />
+                </svg>
+              </span>
+
               Contact
             </Link>
           </div>
 
-          <div className="border-t border-[#27430D]/10 pt-5">
+          {/* Divider */}
+          <div className="my-6 border-t border-[#27430D]/10" />
+
+          {/* Follow */}
+          <div className="px-4">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#687704]">
+              Follow
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <a
+                href="#"
+                className="block font-essays text-lg text-[#27430D] transition-colors hover:text-[#687704]"
+              >
+                Instagram
+              </a>
+
+              <a
+                href="#"
+                className="block font-essays text-lg text-[#27430D] transition-colors hover:text-[#687704]"
+              >
+                Substack
+              </a>
+
+              <a
+                href="mailto:thecompass.id@gmail.com"
+                className="block font-essays text-lg text-[#27430D] transition-colors hover:text-[#687704]"
+              >
+                Email
+              </a>
+            </div>
+          </div>
+
+          {/* Bottom Info */}
+          <div className="mt-auto border-t border-[#27430D]/10 px-4 pt-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687704]">
               The Compass
             </p>
@@ -399,7 +701,7 @@ export default function Navbar() {
             </p>
           </div>
         </nav>
-      </div>
+      </aside>
     </>
   );
 }

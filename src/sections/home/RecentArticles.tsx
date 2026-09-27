@@ -82,10 +82,12 @@ export default async function RecentArticles() {
     });
 
   if (error) {
-    console.error(
-      "RECENT ARTICLES FETCH ERROR:",
-      error,
-    );
+    console.warn("RECENT ARTICLES FETCH ERROR", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
   }
 
   const publishedArticles =
@@ -148,24 +150,27 @@ export default async function RecentArticles() {
                 className={
                   shouldScroll
                     ? `
-                      max-h-175
-                      space-y-5
-                      overflow-y-auto
-                      overscroll-contain
-                      pr-3
+                        max-h-175
+                        space-y-5
+                        overflow-y-auto
+                        overscroll-auto
+                        pr-3
+                        touch-pan-y
 
-                      [scrollbar-color:#687704_transparent]
-                      scrollbar-thin
+                        md:overscroll-contain
 
-                      [&::-webkit-scrollbar]:w-2
-                      [&::-webkit-scrollbar-track]:bg-transparent
+                        [scrollbar-color:#687704_transparent]
+                        scrollbar-thin
 
-                      [&::-webkit-scrollbar-thumb]:rounded-full
-                      [&::-webkit-scrollbar-thumb]:bg-[#687704]/35
-                      [&::-webkit-scrollbar-thumb]:transition-colors
+                        [&::-webkit-scrollbar]:w-2
+                        [&::-webkit-scrollbar-track]:bg-transparent
 
-                      hover:[&::-webkit-scrollbar-thumb]:bg-[#687704]/65
-                    `
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        [&::-webkit-scrollbar-thumb]:bg-[#687704]/35
+                        [&::-webkit-scrollbar-thumb]:transition-colors
+
+                        hover:[&::-webkit-scrollbar-thumb]:bg-[#687704]/65
+                      `
                     : "space-y-5"
                 }
               >

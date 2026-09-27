@@ -133,7 +133,7 @@ export default function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-[#F8F5EC]">
       {/* Main Hero */}
-      <div className="relative mx-auto w-full max-w-360 px-5 pb-16 pt-12 sm:px-8 md:pt-20 lg:min-h-155 lg:px-12 lg:pb-0 lg:pt-20">
+      <div className="relative mx-auto w-full max-w-360 px-5 pb-16 pt-28 sm:px-8 md:pt-20 lg:min-h-155 lg:px-12 lg:pb-0 lg:pt-20">
         <div className="relative z-10 grid items-center gap-12 lg:min-h-130 lg:grid-cols-[1fr_0.9fr] lg:gap-4">
           {/* Left Content */}
           <div className="max-w-172.5 lg:translate-x-29 lg:-translate-y-11">
@@ -142,7 +142,7 @@ export default function HeroSection() {
                 Financial literacy for everyone
               </p>
 
-              <h1 className="max-w-162.5 font-essays text-[48px] font-semibold leading-[0.98] tracking-[-0.02em] text-[#27430D] sm:text-[64px] lg:text-[76px]">
+              <h1 className="max-w-162.5 font-essays text-[42px] font-semibold leading-[0.98] tracking-[-0.02em] text-[#27430D] sm:text-[64px] lg:text-[76px]">
                 Know Your Money,
                 <br />
                 Own Your Future.
