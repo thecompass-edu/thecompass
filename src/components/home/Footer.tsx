@@ -25,11 +25,11 @@ const exploreLinks = [
 const followLinks = [
   {
     label: "Instagram",
-    href: "#",
+    href: "https://www.instagram.com/thecompass.id/",
   },
   {
     label: "Substack",
-    href: "#",
+    href: "https://substack.com/@thecompassedu",
   },
   {
     label: "Email",
@@ -181,43 +181,48 @@ export default function Footer() {
             </p>
 
             <div className="mt-7 flex flex-col items-start gap-5">
-              {followLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target={
-                    link.label === "Email"
-                      ? undefined
-                      : "_blank"
-                  }
-                  rel={
-                    link.label === "Email"
-                      ? undefined
-                      : "noopener noreferrer"
-                  }
-                  className="
-                    relative
-                    font-essays
-                    text-lg
-                    text-[#27430D]
-                    transition-opacity
-                    duration-300
-                    after:absolute
-                    after:-bottom-1
-                    after:left-0
-                    after:h-px
-                    after:w-full
-                    after:origin-left
-                    after:scale-x-0
-                    after:bg-[#27430D]
-                    after:transition-transform
-                    after:duration-300
-                    hover:after:scale-x-100
-                  "
-                >
-                  {link.label}
-                </a>
-              ))}
+              {followLinks.map((link) => {
+                const isEmail =
+                  link.label === "Email";
+
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target={
+                      isEmail
+                        ? undefined
+                        : "_blank"
+                    }
+                    rel={
+                      isEmail
+                        ? undefined
+                        : "noopener noreferrer"
+                    }
+                    className="
+                      relative
+                      font-essays
+                      text-lg
+                      text-[#27430D]
+                      transition-opacity
+                      duration-300
+                      after:absolute
+                      after:-bottom-1
+                      after:left-0
+                      after:h-px
+                      after:w-full
+                      after:origin-left
+                      after:scale-x-0
+                      after:bg-[#27430D]
+                      after:transition-transform
+                      after:duration-300
+                      hover:after:scale-x-100
+                    "
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>

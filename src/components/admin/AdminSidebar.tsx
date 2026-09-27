@@ -46,6 +46,62 @@ const navigationItems: NavigationItem[] = [
       />
     ),
   },
+  {
+    label: "Fun Facts",
+    href: "/admin/fun-facts",
+    icon: (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M9 18H15"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+
+        <path
+          d="M10 21H14"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+
+        <path
+          d="M8.5 14.5C7.55 13.6 7 12.32 7 11C7 8.24 9.24 6 12 6C14.76 6 17 8.24 17 11C17 12.32 16.45 13.6 15.5 14.5C14.65 15.3 14 16.04 14 17H10C10 16.04 9.35 15.3 8.5 14.5Z"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        <path
+          d="M12 2V3.5"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+
+        <path
+          d="M4.93 4.93L6 6"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+
+        <path
+          d="M19.07 4.93L18 6"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
 ];
 
 export default function AdminSidebar() {

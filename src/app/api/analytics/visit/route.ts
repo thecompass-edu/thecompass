@@ -69,10 +69,7 @@ export async function POST(
   } = await supabase
     .from("site_visits")
     .select("id")
-    .eq(
-      "session_id",
-      sessionId,
-    )
+    .eq("session_id", sessionId)
     .maybeSingle();
 
   if (lookupError) {
@@ -102,16 +99,21 @@ export async function POST(
   const countryCode =
     getCountryCode(request);
 
-  const { error: insertError } =
-    await supabase
-      .from("site_visits")
-      .insert({
-        visitor_id: visitorId,
-        session_id: sessionId,
-        country_code: countryCode,
-        created_at:
-          new Date().toISOString(),
-      });
+  const {
+    data: insertedVisit,
+    error: insertError,
+  } = await supabase
+    .from("site_visits")
+    .insert({
+      id: crypto.randomUUID(),
+      visitor_id: visitorId,
+      session_id: sessionId,
+      country_code: countryCode,
+      visited_at:
+        new Date().toISOString(),
+    })
+    .select("id")
+    .single();
 
   if (insertError) {
     console.error(
@@ -132,5 +134,6 @@ export async function POST(
 
   return NextResponse.json({
     ok: true,
+    visitId: insertedVisit.id,
   });
 }
