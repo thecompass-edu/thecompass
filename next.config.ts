@@ -18,8 +18,7 @@ function getSupabaseInfo() {
   }
 
   try {
-    const parsed =
-      new URL(url);
+    const parsed = new URL(url);
 
     return {
       origin: parsed.origin,
@@ -154,6 +153,13 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Do not advertise that the site runs on Next.js.
   poweredByHeader: false,
+
+  // Allow larger Server Action form submissions.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
+  },
 
   images: {
     remotePatterns:
