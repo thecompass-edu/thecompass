@@ -171,25 +171,25 @@ export default function Navbar() {
 
   return (
     <>
-      <header
-        className={`
-          fixed
-          top-0
-          z-50
-          w-full
-          transition-[padding,background-color]
-          duration-700
-          ease-[cubic-bezier(0.22,1,0.36,1)]
+<header
+  className={`
+    fixed
+    top-0
+    z-50
+    w-full
 
-          md:sticky
+    md:sticky
+    md:transition-[padding,background-color]
+    md:duration-700
+    md:ease-[cubic-bezier(0.22,1,0.36,1)]
 
-          md:${
-            isScrolled
-              ? "bg-transparent pt-5"
-              : "bg-transparent pt-3"
-          }
-        `}
-      >
+    ${
+      isScrolled
+        ? "md:bg-transparent md:pt-5"
+        : "md:bg-transparent md:pt-3"
+    }
+  `}
+>
         {/* Mobile Navbar */}
         <nav className="border-b border-[#27430D]/8 bg-[#F8F5EC] md:hidden">
           <div className="flex min-h-20 items-center justify-between px-5">

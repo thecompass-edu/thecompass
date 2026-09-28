@@ -45,7 +45,7 @@ export default function Footer() {
     >
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10">
         {/* Main footer */}
-        <div className="grid gap-12 py-12 sm:py-14 lg:grid-cols-[1.7fr_0.75fr_0.75fr] lg:gap-20 lg:py-16">
+        <div className="grid gap-12 pb-12 pt-4 sm:py-14 lg:grid-cols-[1.7fr_0.75fr_0.75fr] lg:gap-20 lg:py-16">
           {/* Brand */}
           <div>
             <Link
@@ -229,7 +229,7 @@ export default function Footer() {
 
         {/* Newsletter */}
         <div className="border-t border-[#27430D]/15 py-10 sm:py-12">
-          <div className="grid items-start gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
+          <div className="grid items-start gap-0 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
             <div>
               <h2 className="font-essays text-3xl font-bold text-[#27430D] sm:text-[32px]">
                 Stay on course.

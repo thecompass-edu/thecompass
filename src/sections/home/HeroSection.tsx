@@ -41,16 +41,16 @@ function HeroVisual({
     <div
       className={
         mobile
-          ? "relative mx-auto mt-8 flex h-105 w-full max-w-105 items-end justify-center"
+          ? "relative mx-auto mt-8 flex h-95 w-full max-w-105 items-end justify-center"
           : "relative mx-auto hidden h-135 w-full max-w-140 items-end justify-center lg:flex"
       }
     >
       {/* Coins */}
       <div
         className={
-          mobile
-            ? "absolute left-1/2 top-0 z-10 w-40 -translate-x-1/2 sm:w-46"
-            : "absolute left-1/2 -top-6.25 z-10 w-45 -translate-x-1/2"
+        mobile
+  ? "absolute left-1/2 top-3 z-10 w-28 -translate-x-1/2 sm:w-34"
+  : "absolute left-1/2 -top-6.25 z-10 w-45 -translate-x-1/2"
         }
       >
         <div className="hero-coins-enter">
@@ -81,8 +81,8 @@ function HeroVisual({
       <div
         className={
           mobile
-            ? "relative z-20 w-72 translate-y-4 sm:w-80"
-            : "relative z-20 w-97.5 translate-y-6"
+  ? "relative z-20 w-64 translate-y-4 sm:w-72"
+  : "relative z-20 w-97.5 translate-y-6"
         }
       >
         <div className="hero-piggy-enter">
@@ -133,16 +133,16 @@ export default function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-[#F8F5EC]">
       {/* Main Hero */}
-      <div className="relative mx-auto w-full max-w-360 px-5 pb-16 pt-28 sm:px-8 md:pt-20 lg:min-h-155 lg:px-12 lg:pb-0 lg:pt-20">
+      <div className="relative mx-auto w-full max-w-360 px-5 pb-6 pt-28 sm:px-8 md:pt-20 lg:min-h-155 lg:px-12 lg:pb-0 lg:pt-20">
         <div className="relative z-10 grid items-center gap-12 lg:min-h-130 lg:grid-cols-[1fr_0.9fr] lg:gap-4">
           {/* Left Content */}
           <div className="max-w-172.5 lg:translate-x-29 lg:-translate-y-11">
             <div className="hero-copy-enter">
-              <p className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-[#687704] sm:text-sm">
-                Financial literacy for everyone
-              </p>
+             <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.24em] text-[#687704] sm:text-sm">
+  Financial literacy for everyone
+</p>
 
-              <h1 className="max-w-162.5 font-essays text-[42px] font-semibold leading-[0.98] tracking-[-0.02em] text-[#27430D] sm:text-[64px] lg:text-[76px]">
+              <h1 className="max-w-162.5 font-essays text-[36px] font-semibold leading-[0.98] tracking-[-0.02em] text-[#27430D] sm:text-[64px] lg:text-[76px]">
                 Know Your Money,
                 <br />
                 Own Your Future.
@@ -161,7 +161,7 @@ export default function HeroSection() {
               </div>
 
               {/* Newsletter */}
-              <div className="hero-newsletter-enter mt-8 lg:mt-0">
+              <div className="hero-newsletter-enter mt-0 lg:mt-0">
                 <NewsletterSignup />
               </div>
             </div>
