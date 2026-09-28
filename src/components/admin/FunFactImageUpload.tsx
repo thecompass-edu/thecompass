@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 
+import Image from "next/image";
+
 import { createClient } from "@/lib/supabase/client";
 
 const STORAGE_BUCKET = "fun-facts";
@@ -22,7 +24,9 @@ const ALLOWED_IMAGE_TYPES = [
 type FunFactImageUploadProps = {
   initialImageUrl?: string;
   onImageChange?: (url: string) => void;
-  onUploadingChange?: (uploading: boolean) => void;
+  onUploadingChange?: (
+    uploading: boolean,
+  ) => void;
 };
 
 function getImageExtension(file: File) {
@@ -42,7 +46,9 @@ function getImageExtension(file: File) {
 }
 
 function validateImage(file: File) {
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+  if (
+    !ALLOWED_IMAGE_TYPES.includes(file.type)
+  ) {
     return "Please choose a JPG, PNG, or WebP image.";
   }
 
@@ -58,37 +64,48 @@ export default function FunFactImageUpload({
   onImageChange,
   onUploadingChange,
 }: FunFactImageUploadProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef =
+    useRef<HTMLInputElement>(null);
 
   const [imageUrl, setImageUrl] =
     useState(initialImageUrl);
 
-  const [fileName, setFileName] = useState("");
+  const [fileName, setFileName] =
+    useState("");
 
-  const [uploadedImagePath, setUploadedImagePath] =
-    useState<string | null>(null);
+  const [
+    uploadedImagePath,
+    setUploadedImagePath,
+  ] = useState<string | null>(null);
 
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] =
+    useState(false);
 
   const [isDragging, setIsDragging] =
     useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
   function updateImageUrl(url: string) {
     setImageUrl(url);
     onImageChange?.(url);
   }
 
-  function updateUploading(value: boolean) {
+  function updateUploading(
+    value: boolean,
+  ) {
     setUploading(value);
     onUploadingChange?.(value);
   }
 
-  async function uploadImage(file: File) {
+  async function uploadImage(
+    file: File,
+  ) {
     setError("");
 
-    const validationError = validateImage(file);
+    const validationError =
+      validateImage(file);
 
     if (validationError) {
       setError(validationError);
@@ -98,7 +115,8 @@ export default function FunFactImageUpload({
     updateUploading(true);
 
     try {
-      const supabase = createClient();
+      const supabase =
+        createClient();
 
       const extension =
         getImageExtension(file);
@@ -119,10 +137,11 @@ export default function FunFactImageUpload({
         throw uploadError;
       }
 
-      const { data: publicUrlData } =
-        supabase.storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(filePath);
+      const {
+        data: publicUrlData,
+      } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(filePath);
 
       if (!publicUrlData.publicUrl) {
         await supabase.storage
@@ -134,15 +153,15 @@ export default function FunFactImageUpload({
         );
       }
 
-      /*
-       * Clean up another image uploaded during
-       * the same unsaved editing session.
-       */
+      // Clean up temporary image.
       if (uploadedImagePath) {
-        const { error: removeOldError } =
-          await supabase.storage
-            .from(STORAGE_BUCKET)
-            .remove([uploadedImagePath]);
+        const {
+          error: removeOldError,
+        } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .remove([
+            uploadedImagePath,
+          ]);
 
         if (removeOldError) {
           console.error(
@@ -152,7 +171,10 @@ export default function FunFactImageUpload({
         }
       }
 
-      setUploadedImagePath(filePath);
+      setUploadedImagePath(
+        filePath,
+      );
+
       setFileName(file.name);
 
       updateImageUrl(
@@ -181,7 +203,8 @@ export default function FunFactImageUpload({
   async function handleInputChange(
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const file = event.target.files?.[0];
+    const file =
+      event.target.files?.[0];
 
     if (!file) {
       return;
@@ -214,18 +237,19 @@ export default function FunFactImageUpload({
   async function handleRemove() {
     setError("");
 
-    /*
-     * Only delete immediately when the image
-     * was uploaded during this unsaved session.
-     */
+    // Delete temporary upload.
     if (uploadedImagePath) {
       try {
-        const supabase = createClient();
+        const supabase =
+          createClient();
 
-        const { error: removeError } =
-          await supabase.storage
-            .from(STORAGE_BUCKET)
-            .remove([uploadedImagePath]);
+        const {
+          error: removeError,
+        } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .remove([
+            uploadedImagePath,
+          ]);
 
         if (removeError) {
           throw removeError;
@@ -263,7 +287,11 @@ export default function FunFactImageUpload({
       <input
         type="hidden"
         name="image_uploading"
-        value={uploading ? "true" : "false"}
+        value={
+          uploading
+            ? "true"
+            : "false"
+        }
       />
 
       <label className="block text-[15px] font-semibold text-slate-900">
@@ -271,8 +299,8 @@ export default function FunFactImageUpload({
       </label>
 
       <p className="mt-1 text-sm text-[#8EA0C0]">
-        JPG, PNG, or WebP. Maximum 5 MB. A vertical 9:16
-        image is recommended.
+        JPG, PNG, or WebP. Maximum 5 MB. A
+        vertical 9:16 image is recommended.
       </p>
 
       <input
@@ -301,7 +329,7 @@ export default function FunFactImageUpload({
             setIsDragging(false);
           }}
           onDrop={handleDrop}
-          className={`mt-5 flex min-h-[250px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 text-center transition ${
+          className={`mt-5 flex min-h-62.5 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 text-center transition ${
             isDragging
               ? "border-[#687704] bg-[#F7FAF3]"
               : "border-[#D8E0EC] bg-[#FBFCFE] hover:border-[#B4C1D3]"
@@ -343,11 +371,14 @@ export default function FunFactImageUpload({
         </div>
       ) : (
         <div className="mt-5 overflow-hidden rounded-2xl border border-[#D8E0EC] bg-white">
-          <div className="relative h-[280px] bg-[#F5F7FA]">
-            <img
+          <div className="relative h-70 bg-[#F5F7FA]">
+            <Image
               src={imageUrl}
               alt="Fun Fact preview"
-              className="h-full w-full object-cover"
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 700px"
+              className="object-cover"
             />
 
             {uploading && (
