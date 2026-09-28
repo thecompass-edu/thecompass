@@ -157,7 +157,7 @@ export const TodayFeatured = async () => {
             {/* Category Paper */}
             <div className="absolute -left-8 top-4 z-30 md:-left-14 md:top-8">
               <div className="featured-category-enter">
-                <div className="relative flex min-w-70 items-center justify-center px-7 py-3 md:min-w-82.5 md:px-10 md:py-3.5">
+                <div className="relative flex min-w-50 items-center justify-center px-7 py-3 md:min-w-82.5 md:px-10 md:py-3.5">
                   <div className="absolute inset-0">
                     <Image
                       src={HighlightCard}

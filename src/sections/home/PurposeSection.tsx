@@ -110,15 +110,15 @@ function PurposeContentBlock({
 
   const titleClassName = isMobile
     ? `font-bold leading-none text-[#27430D] ${
-        isValues ? "text-[17px]" : "text-[20px]"
+        isValues ? "text-[19px]" : "text-[22px]"
       }`
     : "text-[26px] font-bold leading-none text-[#27430D] lg:text-5xl lg:leading-normal";
 
   const descriptionClassName = isMobile
     ? `text-[#8A9D7A] ${
         isValues
-          ? "mt-3 text-[9px] leading-[1.45]"
-          : "mt-3 text-[10px] leading-normal"
+          ? "mt-3 text-[11px] leading-[1.45]"
+          : "mt-3 text-[12px] leading-normal"
       }`
     : `text-[14px] leading-[1.55] text-[#8A9D7A] lg:text-2xl lg:leading-relaxed ${
         isValues ? "mt-5 lg:mt-8" : "mt-4 lg:mt-6"
@@ -213,7 +213,7 @@ function TornPaperEdge() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute -bottom-px left-0 z-40 h-11 w-full overflow-hidden bg-[#F8F5EC]"
+      className="pointer-events-none absolute -bottom-px left-0 z-40 h-16 w-full overflow-hidden bg-[#F8F5EC] md:h-11"
       style={{
         clipPath: `
           polygon(
@@ -277,8 +277,8 @@ function MobilePurposeLayout({
   onTabChange,
 }: LayoutProps) {
   return (
-    <div className="block min-h-screen px-4 py-12 md:hidden">
-      {/* PURPOSE TITLE */}
+    <div className="block min-h-[92vh] px-4 pt-12 pb-8 md:hidden">
+      {/* Purpose title */}
       <RevealOnScroll
         className="
           relative
@@ -302,13 +302,16 @@ function MobilePurposeLayout({
         />
       </RevealOnScroll>
 
-      {/* PURPOSE FOLDER */}
+      {/* Purpose folder */}
       <RevealOnScroll
         className="
           relative
           mx-auto
-          mt-10
+          mt-4
           w-full
+          -left-4
+          origin-center
+          scale-[1.25]
           translate-y-12
           overflow-hidden
           opacity-0
@@ -328,7 +331,7 @@ function MobilePurposeLayout({
 
         <CompassCard className="absolute left-[-25%] top-[27%] z-10 w-[28%]" />
 
-        <div className="absolute left-[35%] top-[15%] z-30 w-[50%]">
+        <div className="absolute left-[32%] top-[15%] z-30 w-[50%]">
           <Image
             src={purposePaper}
             alt=""
@@ -352,7 +355,7 @@ function MobilePurposeLayout({
           textClassName="text-[10px] [writing-mode:vertical-rl] capitalize"
         />
 
-        <PurposeGuide className="absolute bottom-[7%] left-[4%] z-40 w-[50%]" />
+        <PurposeGuide className="absolute bottom-[5%] left-[10%] z-40 w-[50%]" />
       </RevealOnScroll>
 
       <TornPaperEdge />
@@ -369,7 +372,7 @@ function ResponsivePurposeLayout({
 
   return (
     <div className="hidden min-h-screen px-6 py-12 md:block lg:py-16">
-      {/* PURPOSE TITLE */}
+      {/* Purpose title */}
       <RevealOnScroll
         className="
           relative
@@ -395,7 +398,7 @@ function ResponsivePurposeLayout({
         </div>
       </RevealOnScroll>
 
-      {/* PURPOSE FOLDER */}
+      {/* Purpose folder */}
       <RevealOnScroll
         className="
           relative
@@ -458,7 +461,7 @@ function ResponsivePurposeLayout({
         </div>
 
         <PurposeGuide
-          className="absolute bottom-[9%] left-[9%] z-30 w-[27%] lg:bottom-[10%] lg:left-[10%] lg:w-[30%]"
+          className="absolute bottom-[9%] left-[10%] z-30 w-[27%] lg:bottom-[10%] lg:left-[10%] lg:w-[30%]"
           interactive
         />
       </RevealOnScroll>
@@ -469,22 +472,18 @@ function ResponsivePurposeLayout({
 }
 
 export default function PurposeSection() {
-  const [activeTab, setActiveTab] =
-    useState<PurposeTab>("mission");
-
-  const [animationKey, setAnimationKey] =
-    useState(0);
+  const [activeTab, setActiveTab] = useState<PurposeTab>("mission");
+  const [animationKey, setAnimationKey] = useState(0);
 
   const handleTabChange = (tab: PurposeTab) => {
     setActiveTab(tab);
-
     setAnimationKey((current) => current + 1);
   };
 
   return (
     <section
       id="purpose"
-      className="relative min-h-screen overflow-hidden bg-[#27430D]"
+      className="relative overflow-hidden bg-[#27430D] md:min-h-screen"
     >
       <MobilePurposeLayout
         activeTab={activeTab}
