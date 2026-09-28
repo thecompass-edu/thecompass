@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import compassLogo from "@/assets/Purpose/compass-logo.png";
-import purposeFolder from "@/assets/Purpose/purpose-folder.png";
-import purposeGuide from "@/assets/Purpose/purpose-guide.png";
-import purposePaper from "@/assets/Purpose/purpose-paper.png";
-import purposeTitle from "@/assets/Purpose/purpose-title.png";
+import compassLogo from "@/assets/purpose/compass-logo.png";
+import purposeFolder from "@/assets/purpose/purpose-folder.png";
+import purposeGuide from "@/assets/purpose/purpose-guide.png";
+import purposePaper from "@/assets/purpose/purpose-paper.png";
+import purposeTitle from "@/assets/purpose/purpose-title.png";
 
 import RevealOnScroll from "@/components/home/RevealOnScroll";
 
