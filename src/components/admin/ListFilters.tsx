@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buildListHref } from "@/lib/admin/list-url";
+import SearchBox from "./Searchbox";
 
 export type FilterOption = {
   label: string;
@@ -23,7 +24,6 @@ export default function ListFilters({
   defaultStatus = "all",
   searchPlaceholder = "Search...",
 }: ListFiltersProps) {
-  const isFiltering = q !== "" || status !== defaultStatus;
 
   return (
     <div className="mt-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -55,39 +55,15 @@ export default function ListFilters({
       )}
 
       {/* Search */}
-      <form
-        action={basePath}
-        method="get"
-        className="flex w-full gap-2 lg:max-w-md"
-      >
-        {status !== defaultStatus && (
-          <input type="hidden" name="status" value={status} />
-        )}
-
-        <input
-          type="search"
-          name="q"
-          defaultValue={q}
+      <div className="flex w-full items-center gap-2 lg:max-w-md">
+        <SearchBox
+          basePath={basePath}
+          status={status}
+          defaultStatus={defaultStatus}
+          initialQuery={q}
           placeholder={searchPlaceholder}
-          className="h-11 w-full rounded-xl border border-[#27430D]/10 bg-white px-4 text-sm text-[#27430D] outline-none transition placeholder:text-[#523A23]/40 focus:border-[#687704]"
         />
-
-        <button
-          type="submit"
-          className="h-11 shrink-0 rounded-xl bg-[#27430D] px-5 text-sm font-semibold text-white transition hover:bg-[#35551A]"
-        >
-          Search
-        </button>
-
-        {isFiltering && (
-          <Link
-            href={basePath}
-            className="inline-flex h-11 shrink-0 items-center rounded-xl border border-[#27430D]/10 bg-white px-4 text-sm font-semibold text-[#523A23]/70 transition hover:bg-[#F6F1EA]"
-          >
-            Reset
-          </Link>
-        )}
-      </form>
+      </div>
     </div>
   );
 }
