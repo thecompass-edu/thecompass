@@ -24,7 +24,6 @@ export default function ListFilters({
   defaultStatus = "all",
   searchPlaceholder = "Search...",
 }: ListFiltersProps) {
-
   return (
     <div className="mt-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       {statusOptions && statusOptions.length > 0 ? (
