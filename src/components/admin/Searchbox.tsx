@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { buildListHref } from "@/lib/admin/list-url";
+import { CloseCircleBoldIcon } from "@solar-icons/react";
 
 type SearchBoxProps = {
   basePath: string;
@@ -24,7 +25,7 @@ export default function SearchBox({
   const router = useRouter();
   const [value, setValue] = useState(initialQuery);
   const [prevInitialQuery, setPrevInitialQuery] = useState(initialQuery);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const isFirstRender = useRef(true);
 
   if (initialQuery !== prevInitialQuery) {
@@ -61,13 +62,17 @@ export default function SearchBox({
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
         aria-label="Search"
-        className="h-11 w-full rounded-xl border border-[#27430D]/10 bg-white px-4 text-sm text-[#27430D] outline-none transition placeholder:text-[#523A23]/40 focus:border-[#687704]"
+        className="h-11 w-full rounded-xl border border-[#27430D]/10 bg-white pr-10 px-4 text-sm text-[#27430D] outline-none transition placeholder:text-[#523A23]/40 focus:border-[#687704] [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
       />
-
-      {isPending && (
-        <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[#523A23]/40">
-          Searching…
-        </span>
+      {value && (
+        <button
+          type="button"
+          onClick={() => setValue("")}
+          aria-label="Clear search"
+          className="absolute top-1/2 right-3 -translate-y-1/2 text-[#523A23]/40 transition hover:text-[#27430D]"
+        >
+          <CloseCircleBoldIcon size={18}/>
+        </button>
       )}
     </div>
   );
