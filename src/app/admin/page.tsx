@@ -121,20 +121,10 @@ export default async function AdminDashboardPage() {
   const supabase =
     await createClient();
 
-  // Dashboard data
   const [
-    {
-      data: articles,
-      error: articlesError,
-    },
-    {
-      data: siteVisits,
-      error: visitsError,
-    },
-    {
-      data: articleViews,
-      error: viewsError,
-    },
+    articlesResult,
+    visitsResult,
+    viewsResult,
   ] = await Promise.all([
     supabase
       .from("articles")
@@ -154,6 +144,21 @@ export default async function AdminDashboardPage() {
         "id, article_id, created_at",
       ),
   ]);
+
+  const {
+    data: articles,
+    error: articlesError,
+  } = articlesResult;
+
+  const {
+    data: siteVisits,
+    error: visitsError,
+  } = visitsResult;
+
+  const {
+    data: articleViews,
+    error: viewsError,
+  } = viewsResult;
 
   if (articlesError) {
     console.error(
@@ -469,8 +474,7 @@ export default async function AdminDashboardPage() {
           </h1>
 
           <p className="mt-2 text-sm text-[#8D7765] sm:text-base">
-            Manage your articles
-            and monitor website
+            Manage your articles and monitor website
             performance.
           </p>
         </div>
