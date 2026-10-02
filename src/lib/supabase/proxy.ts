@@ -32,7 +32,6 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Refresh and verify the authentication token.
   await supabase.auth.getClaims();
 
   return supabaseResponse;

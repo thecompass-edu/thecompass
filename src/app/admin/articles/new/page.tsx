@@ -6,14 +6,44 @@ import {
   useState,
 } from "react";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import ArticleEditor from "@/components/admin/ArticleEditor";
+
 import AuthorsInput from "@/components/admin/AuthorsInput";
-import CoverImageUpload from "@/components/admin/CoverImageUpload";
 import ConfirmationModal from "@/components/admin/ConfirmationModal";
+import CoverImageUpload from "@/components/admin/CoverImageUpload";
 import UnsavedChangesGuard from "@/components/admin/UnsavedChangesGuard";
 
 import { createArticle } from "./actions";
+
+const ArticleEditor = dynamic(
+  () => import("@/components/admin/ArticleEditor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="overflow-hidden rounded-2xl border border-[#27430D]/10 bg-white">
+        <div className="flex h-14 items-center gap-2 border-b border-[#27430D]/10 px-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-8 w-9 animate-pulse rounded-lg bg-[#27430D]/10"
+            />
+          ))}
+        </div>
+
+        <div className="min-h-175 animate-pulse px-8 py-7">
+          <div className="h-5 w-3/4 rounded bg-[#27430D]/10" />
+
+          <div className="mt-5 h-4 w-full rounded bg-[#27430D]/5" />
+
+          <div className="mt-3 h-4 w-11/12 rounded bg-[#27430D]/5" />
+
+          <div className="mt-3 h-4 w-4/5 rounded bg-[#27430D]/5" />
+        </div>
+      </div>
+    ),
+  },
+);
 
 const ARTICLE_TOAST_STORAGE_KEY =
   "compass-article-created";
@@ -225,7 +255,6 @@ export default function NewArticlePage() {
   const publishSubmitRef =
     useRef<HTMLButtonElement>(null);
 
-
   const [title, setTitle] =
     useState("");
 
@@ -251,7 +280,6 @@ export default function NewArticlePage() {
     useState<ArticleAction | null>(
       null,
     );
-
 
   const [
     hasUnsavedChanges,
@@ -370,7 +398,6 @@ export default function NewArticlePage() {
       new Set(),
     );
 
-
     // Saving a draft is safe, so submit it right away.
     if (action === "draft") {
       if (
@@ -444,7 +471,6 @@ export default function NewArticlePage() {
       "published"
         ? "published"
         : "draft";
-
 
     setHasUnsavedChanges(
       false,
@@ -527,7 +553,6 @@ export default function NewArticlePage() {
                   : "Not saved yet"}
               </span>
 
-
               <button
                 type="button"
                 onClick={() =>
@@ -542,7 +567,6 @@ export default function NewArticlePage() {
               >
                 Save Draft
               </button>
-
 
               <button
                 type="button"
@@ -606,9 +630,7 @@ export default function NewArticlePage() {
             </h2>
 
             <p className="text-xs text-[#523A23]/40 sm:text-sm">
-              title · excerpt ·
-              authors · category ·
-              cover image
+              title · excerpt · authors · category · cover image
             </p>
           </div>
 
@@ -695,10 +717,7 @@ export default function NewArticlePage() {
                     <RequiredError />
                   ) : (
                     <p className="mt-2 text-xs text-[#523A23]/35">
-                      The article URL
-                      will be generated
-                      automatically from
-                      this title.
+                      The article URL will be generated automatically from this title.
                     </p>
                   )}
                 </div>
@@ -715,8 +734,7 @@ export default function NewArticlePage() {
                     </label>
 
                     <span className="text-xs text-[#523A23]/35">
-                      Maximum 160
-                      characters
+                      Maximum 160 characters
                     </span>
                   </div>
 
@@ -749,10 +767,7 @@ export default function NewArticlePage() {
                     <RequiredError />
                   ) : (
                     <p className="mt-2 text-sm text-[#523A23]/40">
-                      Shown on the
-                      article list and
-                      at the top of the
-                      article.
+                      Shown on the article list and at the top of the article.
                     </p>
                   )}
                 </div>
@@ -780,10 +795,7 @@ export default function NewArticlePage() {
                   <RequiredError />
                 ) : (
                   <p className="mt-2 text-sm text-[#523A23]/40">
-                    Used on the
-                    article list and
-                    at the top of the
-                    published article.
+                    Used on the article list and at the top of the published article.
                   </p>
                 )}
               </div>
@@ -797,10 +809,7 @@ export default function NewArticlePage() {
                 </h3>
 
                 <p className="mt-1 text-sm text-[#523A23]/40">
-                  Add everyone who
-                  wrote the article
-                  and choose its
-                  category.
+                  Add everyone who wrote the article and choose its category.
                 </p>
               </div>
 
@@ -878,10 +887,7 @@ export default function NewArticlePage() {
                     <RequiredError />
                   ) : (
                     <p className="mt-2 text-xs text-[#523A23]/35">
-                      Used to group
-                      related articles
-                      across The
-                      Compass.
+                      Used to group related articles across The Compass.
                     </p>
                   )}
                 </div>
@@ -987,7 +993,6 @@ export default function NewArticlePage() {
           handleConfirmAction
         }
       />
-
     </div>
   );
 }
