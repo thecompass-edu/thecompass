@@ -20,26 +20,24 @@ export default async function AdminLayout({
 }: AdminLayoutProps) {
   const supabase = await createClient();
 
-  // Check authentication
   const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    data: claimsData,
+    error: claimsError,
+  } = await supabase.auth.getClaims();
 
-  if (userError || !user) {
-    redirect(
-      "/login?redirectTo=/admin",
-    );
+  const userId = claimsData?.claims?.sub;
+
+  if (claimsError || !userId) {
+    redirect("/login?redirectTo=/admin");
   }
 
-  // Check admin access
   const {
     data: adminAccess,
     error: adminAccessError,
   } = await supabase
     .from("admin_users")
     .select("user_id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (adminAccessError) {

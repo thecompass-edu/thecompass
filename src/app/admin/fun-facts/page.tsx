@@ -15,6 +15,12 @@ const STATUS_FILTERS = [
   { label: "Draft", value: "draft" },
 ] as const;
 
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
 type StatusFilter = (typeof STATUS_FILTERS)[number]["value"];
 
 type SearchParams = {
@@ -28,11 +34,8 @@ type FunFact = {
   title: string;
   description: string;
   fun_fact_number: number | null;
-  image_url: string | null;
   status: "draft" | "published";
   published_at: string | null;
-  created_at: string;
-  updated_at: string;
 };
 
 function formatDate(date: string | null) {
@@ -40,19 +43,31 @@ function formatDate(date: string | null) {
     return "—";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
+  return dateFormatter.format(new Date(date));
 }
 
 function getPageNumbers(current: number, total: number) {
   const windowSize = 5;
-  let start = Math.max(1, current - Math.floor(windowSize / 2));
-  const end = Math.min(total, start + windowSize - 1);
-  start = Math.max(1, end - windowSize + 1);
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
+  let start = Math.max(
+    1,
+    current - Math.floor(windowSize / 2),
+  );
+
+  const end = Math.min(
+    total,
+    start + windowSize - 1,
+  );
+
+  start = Math.max(
+    1,
+    end - windowSize + 1,
+  );
+
+  return Array.from(
+    { length: end - start + 1 },
+    (_, index) => start + index,
+  );
 }
 
 export default async function FunFactsPage({
@@ -63,86 +78,177 @@ export default async function FunFactsPage({
   const params = await searchParams;
 
   const q = (params.q ?? "").trim();
+
   const status: StatusFilter =
-    params.status === "published" || params.status === "draft"
+    params.status === "published" ||
+    params.status === "draft"
       ? params.status
       : "all";
-  const requestedPage = Number.parseInt(params.page ?? "1", 10);
+
+  const requestedPage = Number.parseInt(
+    params.page ?? "1",
+    10,
+  );
+
   const page =
-    Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-
-  const supabase = await createClient();
-
-  const [totalRes, publishedRes, draftRes] = await Promise.all([
-    supabase.from("fun_facts").select("id", { count: "exact", head: true }),
-    supabase
-      .from("fun_facts")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published"),
-    supabase
-      .from("fun_facts")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "draft"),
-  ]);
-
-  const totalFunFacts = totalRes.count ?? 0;
-  const publishedCount = publishedRes.count ?? 0;
-  const draftCount = draftRes.count ?? 0;
+    Number.isFinite(requestedPage) &&
+    requestedPage > 0
+      ? requestedPage
+      : 1;
 
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  let query = supabase
+  const supabase = await createClient();
+
+  let listQuery = supabase
     .from("fun_facts")
     .select(
       `
-      id,
-      title,
-      description,
-      fun_fact_number,
-      image_url,
-      status,
-      published_at,
-      created_at,
-      updated_at
-    `,
-      { count: "exact" },
+        id,
+        title,
+        description,
+        fun_fact_number,
+        status,
+        published_at
+      `,
+      {
+        count: "exact",
+      },
     )
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
+    .order("created_at", {
+      ascending: false,
+    })
+    .order("id", {
+      ascending: false,
+    });
 
   if (status !== "all") {
-    query = query.eq("status", status);
+    listQuery = listQuery.eq(
+      "status",
+      status,
+    );
   }
 
   if (q) {
-    const safe = q.replace(/[,()%_\\*"']/g, " ").replace(/\s+/g, " ").trim();
+    const safe = q
+      .replace(
+        /[,()%_\\*"']/g,
+        " ",
+      )
+      .replace(/\s+/g, " ")
+      .trim();
+
     if (safe) {
-      query = query.ilike("title", `%${safe}%`);
+      listQuery = listQuery.ilike(
+        "title",
+        `%${safe}%`,
+      );
     }
   }
-  const { data, error, count } = await query.range(from, to);
 
-  if (error?.code === "PGRST103" && page > 1) {
-    redirect(buildListHref(BASE_PATH, { q, status, page: 1 }));
+  const [
+    totalRes,
+    publishedRes,
+    draftRes,
+    listRes,
+  ] = await Promise.all([
+    supabase
+      .from("fun_facts")
+      .select("id", {
+        count: "exact",
+        head: true,
+      }),
+
+    supabase
+      .from("fun_facts")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .eq("status", "published"),
+
+    supabase
+      .from("fun_facts")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .eq("status", "draft"),
+
+    listQuery.range(from, to),
+  ]);
+
+  const {
+    data,
+    error,
+    count,
+  } = listRes;
+
+  if (
+    error?.code === "PGRST103" &&
+    page > 1
+  ) {
+    redirect(
+      buildListHref(BASE_PATH, {
+        q,
+        status,
+        page: 1,
+      }),
+    );
   }
 
   if (error) {
-    console.error("FUN FACTS FETCH ERROR:", error);
+    console.error(
+      "FUN FACTS FETCH ERROR:",
+      error,
+    );
   }
 
-  const funFacts = (data ?? []) as FunFact[];
-  const filteredCount = count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
-  const showingFrom = filteredCount === 0 ? 0 : from + 1;
-  const showingTo = from + funFacts.length;
-  const isFiltering = q !== "" || status !== "all";
-  const hrefFor = (p: number) =>
-    buildListHref(BASE_PATH, { q, status, page: p });
+  const totalFunFacts =
+    totalRes.count ?? 0;
+
+  const publishedCount =
+    publishedRes.count ?? 0;
+
+  const draftCount =
+    draftRes.count ?? 0;
+
+  const funFacts =
+    (data ?? []) as FunFact[];
+
+  const filteredCount =
+    count ?? 0;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredCount / PAGE_SIZE,
+    ),
+  );
+
+  const showingFrom =
+    filteredCount === 0
+      ? 0
+      : from + 1;
+
+  const showingTo =
+    from + funFacts.length;
+
+  const isFiltering =
+    q !== "" ||
+    status !== "all";
+
+  const hrefFor = (pageNumber: number) =>
+    buildListHref(BASE_PATH, {
+      q,
+      status,
+      page: pageNumber,
+    });
 
   return (
     <div className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold tracking-[0.2em] text-[#687704]">
@@ -166,7 +272,7 @@ export default async function FunFactsPage({
         </Link>
       </div>
 
-      {/* COUNTERS */}
+      {/* Counters */}
       <div className="mt-10 grid gap-5 sm:grid-cols-3">
         <div className="rounded-2xl border border-[#27430D]/10 bg-white px-6 py-6">
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#7B886C]">
@@ -199,7 +305,7 @@ export default async function FunFactsPage({
         </div>
       </div>
 
-      {/* SEARCH & FILTER */}
+      {/* Search and filter */}
       <ListFilters
         basePath={BASE_PATH}
         q={q}
@@ -208,31 +314,44 @@ export default async function FunFactsPage({
         searchPlaceholder="Search by title"
       />
 
-      {/* FUN FACT TABLE */}
+      {/* Fun Fact table */}
       <div className="mt-6">
         {funFacts.length > 0 ? (
           <div className="overflow-hidden rounded-2xl border border-[#27430D]/10 bg-white">
-            {/* DESKTOP HEADER */}
+            {/* Table header */}
             <div className="hidden grid-cols-[minmax(0,1.7fr)_150px_160px_100px] items-center gap-5 border-b border-[#27430D]/10 bg-[#F8F5EC] px-7 py-5 text-xs font-bold uppercase tracking-[0.14em] text-[#687704] md:grid">
-              <span>Fun Fact</span>
-              <span>Status</span>
-              <span>Published</span>
-              <span className="text-right">Action</span>
+              <span>
+                Fun Fact
+              </span>
+
+              <span>
+                Status
+              </span>
+
+              <span>
+                Published
+              </span>
+
+              <span className="text-right">
+                Action
+              </span>
             </div>
 
-            {/* ROWS */}
+            {/* Rows */}
             <div className="divide-y divide-[#27430D]/10">
               {funFacts.map((funFact) => (
                 <div
                   key={funFact.id}
                   className="grid gap-5 px-7 py-6 transition hover:bg-[#FDFBF7] md:grid-cols-[minmax(0,1.7fr)_150px_160px_100px] md:items-center"
                 >
-                  {/* FUN FACT */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-3">
                       {funFact.fun_fact_number && (
                         <span className="shrink-0 text-xs font-bold tracking-[0.12em] text-[#687704]">
-                          #{funFact.fun_fact_number}
+                          #
+                          {
+                            funFact.fun_fact_number
+                          }
                         </span>
                       )}
 
@@ -243,46 +362,58 @@ export default async function FunFactsPage({
 
                     {funFact.description && (
                       <p className="mt-1 line-clamp-1 text-sm text-[#8D7765]">
-                        {funFact.description}
+                        {
+                          funFact.description
+                        }
                       </p>
                     )}
                   </div>
 
-                  {/* STATUS */}
                   <div>
                     <span
                       className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        funFact.status === "published"
+                        funFact.status ===
+                        "published"
                           ? "bg-[#EEF3E4] text-[#536B0F]"
                           : "bg-[#F6F1EA] text-[#765C43]"
                       }`}
                     >
-                      {funFact.status === "published" ? "Published" : "Draft"}
+                      {funFact.status ===
+                      "published"
+                        ? "Published"
+                        : "Draft"}
                     </span>
                   </div>
 
-                  {/* PUBLISHED DATE */}
                   <div className="text-sm text-[#8D7765]">
-                    {funFact.status === "published"
-                      ? formatDate(funFact.published_at)
+                    {funFact.status ===
+                    "published"
+                      ? formatDate(
+                          funFact.published_at,
+                        )
                       : "—"}
                   </div>
 
-                  {/* ACTION MENU */}
                   <div className="flex md:justify-end">
                     <FunFactActionsMenu
-                      funFactId={funFact.id}
-                      funFactTitle={funFact.title}
+                      funFactId={
+                        funFact.id
+                      }
+                      funFactTitle={
+                        funFact.title
+                      }
                     />
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* PAGINATION */}
+            {/* Pagination */}
             <div className="flex flex-col gap-4 border-t border-[#27430D]/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-[#523A23]/60">
-                Showing {showingFrom}–{showingTo} of {filteredCount} fun facts
+                Showing {showingFrom}–
+                {showingTo} of{" "}
+                {filteredCount} fun facts
               </p>
 
               {totalPages > 1 && (
@@ -292,7 +423,9 @@ export default async function FunFactsPage({
                 >
                   {page > 1 ? (
                     <Link
-                      href={hrefFor(page - 1)}
+                      href={hrefFor(
+                        page - 1,
+                      )}
                       className="rounded-lg px-3 py-2 text-sm font-semibold text-[#523A23]/70 transition hover:bg-[#F6F1EA]"
                     >
                       Previous
@@ -303,24 +436,44 @@ export default async function FunFactsPage({
                     </span>
                   )}
 
-                  {getPageNumbers(page, totalPages).map((n) => (
-                    <Link
-                      key={n}
-                      href={hrefFor(n)}
-                      aria-current={n === page ? "page" : undefined}
-                      className={`min-w-9 rounded-lg px-3 py-2 text-center text-sm font-semibold transition ${
-                        n === page
-                          ? "bg-[#27430D] text-white"
-                          : "text-[#523A23]/70 hover:bg-[#F6F1EA]"
-                      }`}
-                    >
-                      {n}
-                    </Link>
-                  ))}
+                  {getPageNumbers(
+                    page,
+                    totalPages,
+                  ).map(
+                    (pageNumber) => (
+                      <Link
+                        key={
+                          pageNumber
+                        }
+                        href={hrefFor(
+                          pageNumber,
+                        )}
+                        aria-current={
+                          pageNumber ===
+                          page
+                            ? "page"
+                            : undefined
+                        }
+                        className={`min-w-9 rounded-lg px-3 py-2 text-center text-sm font-semibold transition ${
+                          pageNumber ===
+                          page
+                            ? "bg-[#27430D] text-white"
+                            : "text-[#523A23]/70 hover:bg-[#F6F1EA]"
+                        }`}
+                      >
+                        {
+                          pageNumber
+                        }
+                      </Link>
+                    ),
+                  )}
 
-                  {page < totalPages ? (
+                  {page <
+                  totalPages ? (
                     <Link
-                      href={hrefFor(page + 1)}
+                      href={hrefFor(
+                        page + 1,
+                      )}
                       className="rounded-lg px-3 py-2 text-sm font-semibold text-[#523A23]/70 transition hover:bg-[#F6F1EA]"
                     >
                       Next
@@ -337,7 +490,9 @@ export default async function FunFactsPage({
         ) : (
           <div className="rounded-2xl border border-dashed border-[#27430D]/20 bg-white px-6 py-16 text-center">
             <p className="text-lg font-semibold text-[#27430D]">
-              {isFiltering ? "No matching fun facts" : "No Fun Facts yet"}
+              {isFiltering
+                ? "No matching fun facts"
+                : "No Fun Facts yet"}
             </p>
 
             <p className="mt-2 text-sm text-[#7B886C]">
